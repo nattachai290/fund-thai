@@ -1,10 +1,7 @@
 name: Daily NAV Update & Deploy
 
 on:
-  schedule:
-    # 23:00 ICT = 16:00 UTC (weekdays) — หลัง NAV ประกาศแล้ว
-    - cron: '0 16 * * 1-5'
-  workflow_dispatch: # สั่งรันเองได้ที่ Actions tab
+  workflow_dispatch: # triggered by cron-job.org via GitHub API
 
 permissions:
   contents: write
