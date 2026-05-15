@@ -125,8 +125,8 @@ function detectCrossover(data) {
   const prev = data[data.length - 2];
   const curr = data[data.length - 1];
   if (!prev.signal || !curr.signal) return null;
-  if (prev.macd < prev.signal && curr.macd >= curr.signal) return 'bullish';
-  if (prev.macd > prev.signal && curr.macd <= curr.signal) return 'bearish';
+  // สัญญาณที่ต้องการ: fast ตัด slow ขึ้นขณะที่ MACD ยังอยู่ใต้ 0
+  if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0) return 'bullish_below_zero';
   return null;
 }
 
@@ -174,34 +174,31 @@ async function sendTelegram(text) {
 
 function buildReport(results) {
   const date = new Date().toLocaleDateString('th-TH', { dateStyle: 'long' });
-  const lines = [`📊 <b>Thai Fund MACD Report</b>\n📅 ${date}\n`];
+  const signals = results.filter((r) => r.crossover === 'bullish_below_zero');
 
-  const crossovers = results.filter((r) => r.crossover);
-  if (crossovers.length) {
-    lines.push('<b>🔔 สัญญาณวันนี้:</b>');
-    for (const r of crossovers) {
-      const emoji = r.crossover === 'bullish' ? '🚀' : '⚠️';
-      const label = r.crossover === 'bullish' ? 'Bullish Crossover' : 'Bearish Crossover';
-      lines.push(`${emoji} <b>${r.code}</b> — ${label}`);
+  // ถ้าไม่มีสัญญาณ ส่งแค่ summary สั้นๆ
+  if (!signals.length) {
+    const lines = [`📊 <b>Thai Fund MACD</b> — ${date}`, '', '⏳ ไม่มีสัญญาณวันนี้', ''];
+    for (const r of results) {
+      if (r.error || !r.data.length) continue;
+      const last = r.data[r.data.length - 1];
+      lines.push(`${r.code}: MACD ${last.macd?.toFixed(4) ?? 'N/A'}`);
     }
-    lines.push('');
+    return lines.join('\n');
   }
 
-  lines.push('<b>📈 NAV & MACD ล่าสุด:</b>');
-  for (const r of results) {
-    if (r.error) {
-      lines.push(`❌ ${r.code}: ${r.error}`);
-      continue;
-    }
+  // มีสัญญาณ — ส่งรายละเอียดเต็ม
+  const lines = [`🚨 <b>สัญญาณซื้อ! Thai Fund MACD</b>\n📅 ${date}\n`];
+  lines.push('<b>✅ MACD (fast) ตัด Signal (slow) ขึ้น ขณะ MACD &lt; 0:</b>');
+  for (const r of signals) {
     const last = r.data[r.data.length - 1];
-    if (!last) continue;
     const prev = r.data[r.data.length - 2];
     const change = prev ? (((last.nav - prev.nav) / prev.nav) * 100).toFixed(2) : null;
-    const arrow = change === null ? '' : change >= 0 ? ' ▲' : ' ▼';
     lines.push(
-      `<b>${r.code}</b>\n` +
-      `  NAV: ${last.nav?.toFixed(4)}${change !== null ? ` (${change}%${arrow})` : ''}\n` +
-      `  MACD: ${last.macd?.toFixed(4) ?? 'N/A'} | Signal: ${last.signal?.toFixed(4) ?? 'N/A'}`
+      `\n🚀 <b>${r.code}</b> (${r.name})` +
+      `\n  NAV: ${last.nav?.toFixed(4)}${change !== null ? ` (${change >= 0 ? '+' : ''}${change}%)` : ''}` +
+      `\n  MACD: <b>${last.macd?.toFixed(4)}</b> | Signal: ${last.signal?.toFixed(4)}` +
+      `\n  Histogram: ${last.histogram?.toFixed(4)}`
     );
   }
 

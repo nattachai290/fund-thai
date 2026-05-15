@@ -53,8 +53,8 @@ export default function FundChart({ code, data }) {
           const prev = displayData[displayData.length - 2];
           const curr = displayData[displayData.length - 1];
           if (!prev?.signal || !curr?.signal) return null;
-          if (prev.macd < prev.signal && curr.macd >= curr.signal) return 'bullish';
-          if (prev.macd > prev.signal && curr.macd <= curr.signal) return 'bearish';
+          if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0)
+            return 'bullish_below_zero';
           return null;
         })()
       : null;
@@ -68,8 +68,9 @@ export default function FundChart({ code, data }) {
         </div>
         <div className="fund-stats">
           <span className="nav-value">NAV {fmt(lastRow.nav)}</span>
-          {crossover === 'bullish' && <span className="badge badge-bull">🚀 Bullish Crossover</span>}
-          {crossover === 'bearish' && <span className="badge badge-bear">⚠️ Bearish Crossover</span>}
+          {crossover === 'bullish_below_zero' && (
+            <span className="badge badge-bull">🚀 Fast ตัด Slow ขึ้น (MACD &lt; 0)</span>
+          )}
         </div>
       </div>
 

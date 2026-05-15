@@ -37,7 +37,7 @@ export function detectCrossover(macdData) {
   const prev = macdData[macdData.length - 2];
   const curr = macdData[macdData.length - 1];
   if (!prev.signal || !curr.signal) return null;
-  if (prev.macd < prev.signal && curr.macd >= curr.signal) return 'bullish';
-  if (prev.macd > prev.signal && curr.macd <= curr.signal) return 'bearish';
+  // fast ตัด slow ขึ้น ขณะ MACD ยังอยู่ใต้ 0
+  if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0) return 'bullish_below_zero';
   return null;
 }
