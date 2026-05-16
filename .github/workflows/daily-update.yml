@@ -2,6 +2,9 @@ name: Daily NAV Update & Deploy
 
 on:
   workflow_dispatch: # triggered by cron-job.org via GitHub API
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write
