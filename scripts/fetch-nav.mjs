@@ -73,6 +73,10 @@ async function secFetch(url, headers) {
 }
 
 // ── proj_id lookup ─────────────────────────────────────────────────────────────
+function normCode(s) {
+  return s.replace(/[\s\-()\[\]]/g, '').toUpperCase();
+}
+
 function loadProjIdCache() {
   try {
     return JSON.parse(readFileSync(PROJ_ID_CACHE, 'utf8'));
@@ -86,9 +90,18 @@ function saveProjIdCache(map) {
   writeFileSync(PROJ_ID_CACHE, JSON.stringify(map, null, 2));
 }
 
+function resolveProjId(map, code) {
+  if (map[code]) return map[code];
+  const norm = normCode(code);
+  for (const [key, val] of Object.entries(map)) {
+    if (normCode(key) === norm) return val;
+  }
+  return null;
+}
+
 async function buildProjIdMap(neededCodes) {
   const cache = loadProjIdCache();
-  const missing = neededCodes.filter((c) => !cache[c]);
+  const missing = neededCodes.filter((c) => !resolveProjId(cache, c));
   if (!missing.length) return cache;
 
   console.log(`🔍 Looking up proj_id for: ${missing.join(', ')}`);
@@ -114,9 +127,6 @@ async function buildProjIdMap(neededCodes) {
       const projId = f.proj_id ?? f.projId ?? f.id;
       if (abbr && projId) cache[abbr] = projId;
     }
-
-    // Stop early if we found all missing ones
-    if (missing.every((c) => cache[c])) break;
   }
 
   saveProjIdCache(cache);
@@ -299,7 +309,7 @@ async function main() {
 
   for (const { code, name } of FUNDS) {
     console.log(`\nFetching: ${code}`);
-    const projId = projIdMap[code];
+    const projId = resolveProjId(projIdMap, code);
 
     if (!projId) {
       console.error(`  ❌ proj_id not found for ${code}`);
