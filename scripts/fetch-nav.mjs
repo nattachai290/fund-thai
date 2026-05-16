@@ -302,12 +302,21 @@ async function main() {
   if (!SEC_KEY_DAILY)     console.warn('⚠️  SEC_API_KEY_DAILY not set');
   if (!SEC_KEY_FACTSHEET) console.warn('⚠️  SEC_API_KEY_FACTSHEET not set');
 
+  const extraCodes = (process.env.EXTRA_FUNDS ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  const allFunds = [
+    ...FUNDS,
+    ...extraCodes
+      .filter((c) => !FUNDS.some((f) => f.code === c || f.secCode === c))
+      .map((c) => ({ code: c, name: c })),
+  ];
+
   // Step 1: resolve proj_id for all funds
-  const projIdMap = await buildProjIdMap(FUNDS);
+  const projIdMap = await buildProjIdMap(allFunds);
 
   const results = [];
 
-  for (const { code, secCode, name } of FUNDS) {
+  for (const { code, secCode, name } of allFunds) {
     console.log(`\nFetching: ${code}`);
     const projId = resolveProjId(projIdMap, secCode ?? code);
 
