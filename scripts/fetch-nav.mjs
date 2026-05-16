@@ -24,18 +24,18 @@ const PROJ_ID_CACHE = join(DATA_DIR, '_proj_id_cache.json');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const FUNDS = [
-  { code: 'LHESPORT-D',     name: 'LH E-Sport' },
-  { code: 'LHSEMICON-D',    name: 'LH Semiconductor' },
-  { code: 'K-GOLD-A(D)',    name: 'K Gold A' },
-  { code: 'ONE-GLOBFIN-RD', name: 'ONE Global Finance' },
-  { code: 'K-GLOBE',        name: 'K Globe' },
-  { code: 'K-USXNDQ-A(D)',  name: 'K US NASDAQ A' },
-  { code: 'SCBNK225D',      name: 'SCB Nikkei 225' },
-  { code: 'KF-HJAPAND',     name: 'KF H-Japan D' },
-  { code: 'SCBBLN',         name: 'SCB Balanced' },
-  { code: 'B-USALPHA',      name: 'B US Alpha' },
-  { code: 'SCBS&P500',      name: 'SCB S&P500' },
-  { code: 'KF-JPSCAPD',     name: 'KF JP Small Cap D' },
+  { code: 'LHESPORT-D',     secCode: 'LHESPORT',    name: 'LH E-Sport' },
+  { code: 'LHSEMICON-D',    secCode: 'LHSEMICON',   name: 'LH Semiconductor' },
+  { code: 'K-GOLD-A(D)',    secCode: 'K-GOLD',       name: 'K Gold A' },
+  { code: 'ONE-GLOBFIN-RD', secCode: 'ONE-GLOBFIN',  name: 'ONE Global Finance' },
+  { code: 'K-GLOBE',                                  name: 'K Globe' },
+  { code: 'K-USXNDQ-A(D)', secCode: 'K-USXNDQ',     name: 'K US NASDAQ A' },
+  { code: 'SCBNK225D',      secCode: 'SCBNKY225',    name: 'SCB Nikkei 225' },
+  { code: 'KF-HJAPAND',                               name: 'KF H-Japan D' },
+  { code: 'SCBBLN',         secCode: 'SCBBLNFUND',   name: 'SCB Balanced' },
+  { code: 'B-USALPHA',                                name: 'B US Alpha' },
+  { code: 'SCBS&P500',      secCode: 'SCBSP500T1',   name: 'SCB S&P500' },
+  { code: 'KF-JPSCAPD',                               name: 'KF JP Small Cap D' },
 ];
 
 const MACD_SHORT = 12;
@@ -99,12 +99,12 @@ function resolveProjId(map, code) {
   return null;
 }
 
-async function buildProjIdMap(neededCodes) {
+async function buildProjIdMap(funds) {
   const cache = loadProjIdCache();
-  const missing = neededCodes.filter((c) => !resolveProjId(cache, c));
+  const missing = funds.filter(({ code, secCode }) => !resolveProjId(cache, secCode ?? code));
   if (!missing.length) return cache;
 
-  console.log(`🔍 Looking up proj_id for: ${missing.join(', ')}`);
+  console.log(`🔍 Looking up proj_id for: ${missing.map((f) => f.secCode ?? f.code).join(', ')}`);
 
   const amcs = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc`, factsheetHeaders());
   const amcList = Array.isArray(amcs) ? amcs : (amcs?.Data ?? amcs?.data ?? []);
@@ -303,13 +303,13 @@ async function main() {
   if (!SEC_KEY_FACTSHEET) console.warn('⚠️  SEC_API_KEY_FACTSHEET not set');
 
   // Step 1: resolve proj_id for all funds
-  const projIdMap = await buildProjIdMap(FUNDS.map((f) => f.code));
+  const projIdMap = await buildProjIdMap(FUNDS);
 
   const results = [];
 
-  for (const { code, name } of FUNDS) {
+  for (const { code, secCode, name } of FUNDS) {
     console.log(`\nFetching: ${code}`);
-    const projId = resolveProjId(projIdMap, code);
+    const projId = resolveProjId(projIdMap, secCode ?? code);
 
     if (!projId) {
       console.error(`  ❌ proj_id not found for ${code}`);
