@@ -26,7 +26,7 @@
 Settings → Pages → Source: **GitHub Actions**
 
 ### 2. ขอ SEC API Key
-สมัครที่ https://apiportal.sec.or.th/ แล้วสร้าง App เพื่อรับ API Key
+สมัครที่ https://api-portal.sec.or.th/ → เลือก Products → สมัคร **FundFactsheet** และ **FundDailyInfo** → copy Subscription Key
 
 ### 3. ตั้ง GitHub Secrets
 Settings → Secrets → Actions:

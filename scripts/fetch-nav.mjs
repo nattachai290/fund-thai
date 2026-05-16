@@ -3,18 +3,24 @@
  * saves JSON to public/data/, and sends Telegram notifications.
  *
  * Secrets required (GitHub Actions):
- *   SEC_API_KEY         - from https://apiportal.sec.or.th/
+ *   SEC_API_KEY         - จาก https://api-portal.sec.or.th/
  *   TELEGRAM_BOT_TOKEN  - from @BotFather
  *   TELEGRAM_CHAT_ID    - your chat/group ID
+ *
+ * SEC API flow:
+ *   1. GET /FundFactsheet/fund/amc                → list all AMCs
+ *   2. GET /FundFactsheet/fund/amc/{id}           → list funds + proj_id
+ *   3. GET /FundDailyInfo/{proj_id}/dailynav/{date} → NAV per day
  */
 
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const DATA_DIR = join(ROOT, 'public', 'data');
+const PROJ_ID_CACHE = join(DATA_DIR, '_proj_id_cache.json');
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const FUNDS = [
@@ -40,43 +46,124 @@ const HISTORY_DAYS = 250;
 const SEC_API_KEY = process.env.SEC_API_KEY ?? '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? '';
+const SEC_BASE = 'https://api.sec.or.th';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function dateRange(days) {
-  const end = new Date();
-  const start = new Date(Date.now() - days * 86400000);
-  const fmt = (d) => d.toISOString().slice(0, 10);
-  return { startDate: fmt(start), endDate: fmt(end) };
-}
-
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// ── SEC Thailand API ──────────────────────────────────────────────────────────
-async function fetchNAV(fundCode) {
-  const { startDate, endDate } = dateRange(HISTORY_DAYS);
-  const encoded = encodeURIComponent(fundCode);
-  const url = `https://api.sec.or.th/FundFactsheet/fund/${encoded}/nav?start_date=${startDate}&end_date=${endDate}`;
+function secHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...(SEC_API_KEY ? { 'Ocp-Apim-Subscription-Key': SEC_API_KEY } : {}),
+  };
+}
 
-  const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
-  if (SEC_API_KEY) headers['Authorization'] = `Bearer ${SEC_API_KEY}`;
-
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+async function secFetch(url) {
+  const res = await fetch(url, {
+    headers: secHeaders(),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (res.status === 204) return [];
+  if (!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
   return res.json();
 }
 
-function parseNAV(raw) {
-  // Handle both array response and object with Data key
-  const rows = Array.isArray(raw) ? raw : (raw?.Data ?? raw?.data ?? []);
-  return rows
-    .map((r) => ({
-      date: (r.nav_date ?? r.navDate ?? r.date ?? '').toString().replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'),
-      nav: parseFloat(r.nav_value ?? r.navValue ?? r.nav ?? 0),
-    }))
-    .filter((r) => r.date && !isNaN(r.nav))
+// ── proj_id lookup ─────────────────────────────────────────────────────────────
+function loadProjIdCache() {
+  try {
+    return JSON.parse(readFileSync(PROJ_ID_CACHE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveProjIdCache(map) {
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  writeFileSync(PROJ_ID_CACHE, JSON.stringify(map, null, 2));
+}
+
+async function buildProjIdMap(neededCodes) {
+  const cache = loadProjIdCache();
+  const missing = neededCodes.filter((c) => !cache[c]);
+  if (!missing.length) return cache;
+
+  console.log(`🔍 Looking up proj_id for: ${missing.join(', ')}`);
+
+  const amcs = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc`);
+  const amcList = Array.isArray(amcs) ? amcs : (amcs?.Data ?? amcs?.data ?? []);
+
+  for (const amc of amcList) {
+    const uid = amc.unique_id ?? amc.uniqueId ?? amc.id;
+    if (!uid) continue;
+    await sleep(200);
+
+    let funds;
+    try {
+      funds = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc/${uid}`);
+    } catch {
+      continue;
+    }
+    const fundList = Array.isArray(funds) ? funds : (funds?.Data ?? funds?.data ?? []);
+
+    for (const f of fundList) {
+      const abbr = f.proj_abbr_name ?? f.projAbbrName ?? f.abbr_name ?? '';
+      const projId = f.proj_id ?? f.projId ?? f.id;
+      if (abbr && projId) cache[abbr] = projId;
+    }
+
+    // Stop early if we found all missing ones
+    if (missing.every((c) => cache[c])) break;
+  }
+
+  saveProjIdCache(cache);
+  return cache;
+}
+
+// ── NAV fetching ──────────────────────────────────────────────────────────────
+function getDatesInRange(days) {
+  const dates = [];
+  for (let i = days; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const day = d.getDay();
+    if (day === 0 || day === 6) continue; // skip weekends
+    dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
+  }
+  return dates;
+}
+
+async function fetchNAVHistory(projId) {
+  // Fetch from cache first; only pull dates we don't have
+  const dates = getDatesInRange(HISTORY_DAYS);
+  const navMap = {};
+
+  for (const date of dates) {
+    await sleep(150);
+    try {
+      const data = await secFetch(`${SEC_BASE}/FundDailyInfo/${projId}/dailynav/${date}`);
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) continue;
+      const nav = parseFloat(row.nav_value ?? row.navValue ?? row.nav ?? 0);
+      if (nav > 0) {
+        const iso = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
+        navMap[iso] = nav;
+      }
+    } catch {
+      // date not found or API error — skip
+    }
+  }
+
+  return Object.entries(navMap)
+    .map(([date, nav]) => ({ date, nav }))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function mergeWithCache(cached, fresh) {
+  const map = Object.fromEntries(cached.map((r) => [r.date, r]));
+  for (const r of fresh) map[r.date] = { date: r.date, nav: r.nav };
+  return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // ── MACD ──────────────────────────────────────────────────────────────────────
@@ -155,18 +242,13 @@ function loadCachedData(code) {
 // ── Telegram ──────────────────────────────────────────────────────────────────
 async function sendTelegram(text) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-    console.warn('[Telegram] Token or Chat ID not set — skipping notification');
+    console.warn('[Telegram] Token or Chat ID not set — skipping');
     return;
   }
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const res = await fetch(url, {
+  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text,
-      parse_mode: 'HTML',
-    }),
+    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text, parse_mode: 'HTML' }),
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) console.error('[Telegram] Failed:', await res.text());
@@ -176,7 +258,6 @@ function buildReport(results) {
   const date = new Date().toLocaleDateString('th-TH', { dateStyle: 'long' });
   const signals = results.filter((r) => r.crossover === 'bullish_below_zero');
 
-  // ถ้าไม่มีสัญญาณ ส่งแค่ summary สั้นๆ
   if (!signals.length) {
     const lines = [`📊 <b>Thai Fund MACD</b> — ${date}`, '', '⏳ ไม่มีสัญญาณวันนี้', ''];
     for (const r of results) {
@@ -187,7 +268,6 @@ function buildReport(results) {
     return lines.join('\n');
   }
 
-  // มีสัญญาณ — ส่งรายละเอียดเต็ม
   const lines = [`🚨 <b>สัญญาณซื้อ! Thai Fund MACD</b>\n📅 ${date}\n`];
   lines.push('<b>✅ MACD (fast) ตัด Signal (slow) ขึ้น ขณะ MACD &lt; 0:</b>');
   for (const r of signals) {
@@ -201,38 +281,53 @@ function buildReport(results) {
       `\n  Histogram: ${last.histogram?.toFixed(4)}`
     );
   }
-
   return lines.join('\n');
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\n🚀 Starting NAV fetch — ${new Date().toISOString()}\n`);
+
+  if (!SEC_API_KEY) {
+    console.warn('⚠️  SEC_API_KEY not set — API calls may be rejected');
+  }
+
+  // Step 1: resolve proj_id for all funds
+  const projIdMap = await buildProjIdMap(FUNDS.map((f) => f.code));
+
   const results = [];
 
   for (const { code, name } of FUNDS) {
-    console.log(`Fetching: ${code}`);
+    console.log(`\nFetching: ${code}`);
+    const projId = projIdMap[code];
+
+    if (!projId) {
+      console.error(`  ❌ proj_id not found for ${code}`);
+      results.push({ code, name, data: loadCachedData(code), crossover: null, error: 'proj_id not found' });
+      continue;
+    }
+
     try {
-      const raw = await fetchNAV(code);
-      const navRows = parseNAV(raw);
+      const fresh = await fetchNAVHistory(projId);
+      if (!fresh.length) throw new Error('No NAV data returned');
 
-      if (!navRows.length) throw new Error('No NAV data returned');
+      const cached = loadCachedData(code);
+      const merged = mergeWithCache(
+        cached.map((r) => ({ date: r.date, nav: r.nav })),
+        fresh
+      );
 
-      const merged = navRows; // API returns full history
       const data = computeMACD(merged);
       const crossover = detectCrossover(data);
 
       saveData(code, name, data);
       results.push({ code, name, data, crossover, error: null });
-      console.log(`  ✅ ${navRows.length} rows, crossover: ${crossover ?? 'none'}`);
+      console.log(`  ✅ ${merged.length} rows, crossover: ${crossover ?? 'none'}`);
     } catch (err) {
-      console.error(`  ❌ ${code}: ${err.message}`);
-      // Fall back to cached data so we don't lose history
+      console.error(`  ❌ ${err.message}`);
       const cached = loadCachedData(code);
       results.push({ code, name, data: cached, crossover: null, error: err.message });
     }
-
-    await sleep(400); // polite rate limiting
   }
 
   const report = buildReport(results);
