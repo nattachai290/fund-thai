@@ -93,6 +93,63 @@ body {
   color: #fff;
 }
 
+/* Fund Search */
+.fund-search-wrap {
+  position: relative;
+  margin-top: 0.75rem;
+}
+.fund-search-input {
+  width: 100%;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.fund-search-input:focus {
+  border-color: #3b82f6;
+}
+.fund-search-input::placeholder {
+  color: #475569;
+}
+.fund-search-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+  list-style: none;
+  padding: 0.25rem 0;
+}
+.fund-search-item {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.fund-search-item:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+.fund-search-empty {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: #475569;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
 /* Charts Grid */
 .charts-grid {
   display: grid;
