@@ -7,6 +7,8 @@ import './App.css';
 const BASE = import.meta.env.BASE_URL;
 
 export default function App() {
+  const [customFunds, setCustomFunds] = useState([]);
+  const allFunds = [...FUNDS.map((f) => f.code), ...customFunds];
   const [selected, setSelected] = useState(FUNDS.map((f) => f.code));
   const [fundData, setFundData] = useState({});
   const [loading, setLoading] = useState({});
@@ -15,7 +17,7 @@ export default function App() {
 
   useEffect(() => {
     selected.forEach((code) => {
-      if (fundData[code]) return;
+      if (fundData[code] !== undefined) return;
       setLoading((p) => ({ ...p, [code]: true }));
       const filename = code.replace(/[^a-zA-Z0-9-]/g, '_');
       fetch(`${BASE}data/${filename}.json`)
@@ -43,7 +45,11 @@ export default function App() {
         {lastUpdated && <p className="last-updated">อัปเดตล่าสุด: {lastUpdated}</p>}
       </header>
 
-      <FundSelector selected={selected} onChange={setSelected} />
+      <FundSelector
+        selected={selected}
+        onChange={setSelected}
+        onCustomFundsChange={setCustomFunds}
+      />
 
       <main className="charts-grid">
         {selected.map((code) => {
@@ -54,16 +60,15 @@ export default function App() {
               </div>
             );
           }
-          if (error[code]) {
+          if (error[code] || !fundData[code]?.length) {
             return (
               <div key={code} className="fund-card fund-card-error">
                 <h3>{code}</h3>
-                <p>ยังไม่มีข้อมูล — GitHub Actions จะดึงข้อมูลในวันถัดไป</p>
-                <small>{error[code]}</small>
+                <p>ยังไม่มีข้อมูล — กด Fetch เพื่อดึงข้อมูล</p>
+                {error[code] && <small>{error[code]}</small>}
               </div>
             );
           }
-          if (!fundData[code]?.length) return null;
           return <FundChart key={code} code={code} data={fundData[code]} />;
         })}
       </main>
