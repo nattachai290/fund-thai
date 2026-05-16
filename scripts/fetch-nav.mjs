@@ -43,7 +43,8 @@ const MACD_LONG = 26;
 const MACD_SIGNAL = 9;
 const HISTORY_DAYS = 250;
 
-const SEC_API_KEY = process.env.SEC_API_KEY ?? '';
+const SEC_KEY_DAILY = process.env.SEC_API_KEY_DAILY ?? '';
+const SEC_KEY_FACTSHEET = process.env.SEC_API_KEY_FACTSHEET ?? '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? '';
 const SEC_BASE = 'https://api.sec.or.th';
@@ -53,19 +54,19 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function secHeaders() {
+function secHeaders(key) {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(SEC_API_KEY ? { 'Ocp-Apim-Subscription-Key': SEC_API_KEY } : {}),
+    ...(key ? { 'Ocp-Apim-Subscription-Key': key } : {}),
   };
 }
 
-async function secFetch(url) {
-  const res = await fetch(url, {
-    headers: secHeaders(),
-    signal: AbortSignal.timeout(15000),
-  });
+function factsheetHeaders() { return secHeaders(SEC_KEY_FACTSHEET); }
+function dailyHeaders()     { return secHeaders(SEC_KEY_DAILY); }
+
+async function secFetch(url, headers) {
+  const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
   if (res.status === 204) return [];
   if (!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
   return res.json();
@@ -92,7 +93,7 @@ async function buildProjIdMap(neededCodes) {
 
   console.log(`🔍 Looking up proj_id for: ${missing.join(', ')}`);
 
-  const amcs = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc`);
+  const amcs = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc`, factsheetHeaders());
   const amcList = Array.isArray(amcs) ? amcs : (amcs?.Data ?? amcs?.data ?? []);
 
   for (const amc of amcList) {
@@ -102,7 +103,7 @@ async function buildProjIdMap(neededCodes) {
 
     let funds;
     try {
-      funds = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc/${uid}`);
+      funds = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc/${uid}`, factsheetHeaders());
     } catch {
       continue;
     }
@@ -142,7 +143,7 @@ async function fetchNAVHistory(projId) {
   for (const date of dates) {
     await sleep(150);
     try {
-      const data = await secFetch(`${SEC_BASE}/FundDailyInfo/${projId}/dailynav/${date}`);
+      const data = await secFetch(`${SEC_BASE}/FundDailyInfo/${projId}/dailynav/${date}`, dailyHeaders());
       const row = Array.isArray(data) ? data[0] : data;
       if (!row) continue;
       const nav = parseFloat(row.nav_value ?? row.navValue ?? row.nav ?? 0);
@@ -288,9 +289,8 @@ function buildReport(results) {
 async function main() {
   console.log(`\n🚀 Starting NAV fetch — ${new Date().toISOString()}\n`);
 
-  if (!SEC_API_KEY) {
-    console.warn('⚠️  SEC_API_KEY not set — API calls may be rejected');
-  }
+  if (!SEC_KEY_DAILY)     console.warn('⚠️  SEC_API_KEY_DAILY not set');
+  if (!SEC_KEY_FACTSHEET) console.warn('⚠️  SEC_API_KEY_FACTSHEET not set');
 
   // Step 1: resolve proj_id for all funds
   const projIdMap = await buildProjIdMap(FUNDS.map((f) => f.code));
