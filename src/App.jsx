@@ -39,6 +39,10 @@ function buildNavWithMacd(navRows) {
 function fmt(v, decimals = 4) {
   return v == null ? '—' : Number(v).toFixed(decimals);
 }
+function fmtMoney(v, decimals = 2) {
+  if (v == null) return '—';
+  return Number(v).toLocaleString('th-TH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -292,15 +296,15 @@ export default function App() {
               <div className="portfolio-summary">
                 <div className="summary-card">
                   <span>มูลค่ารวม</span>
-                  <strong>฿{fmt(totalValue, 2)}</strong>
+                  <strong>฿{fmtMoney(totalValue)}</strong>
                 </div>
                 <div className="summary-card">
                   <span>ต้นทุนรวม</span>
-                  <strong>฿{fmt(totalCost, 2)}</strong>
+                  <strong>฿{fmtMoney(totalCost)}</strong>
                 </div>
                 <div className={`summary-card ${totalPnl >= 0 ? 'pnl-pos' : 'pnl-neg'}`}>
                   <span>กำไร / ขาดทุน</span>
-                  <strong>{totalPnl >= 0 ? '+' : ''}฿{fmt(totalPnl, 2)}</strong>
+                  <strong>{totalPnl >= 0 ? '+' : ''}฿{fmtMoney(totalPnl)}</strong>
                 </div>
               </div>
 
@@ -341,9 +345,9 @@ export default function App() {
                           </td>
                           <td>{fund.avgCost != null ? fmt(fund.avgCost) : '—'}</td>
                           <td>{fund.unitBalance != null ? fmt(fund.unitBalance) : '—'}</td>
-                          <td>{r?.currentValue != null ? `฿${fmt(r.currentValue, 2)}` : '—'}</td>
+                          <td>{r?.currentValue != null ? `฿${fmtMoney(r.currentValue)}` : '—'}</td>
                           <td className={r?.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
-                            {r?.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmt(r.pnl, 2)}` : '—'}
+                            {r?.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmtMoney(r.pnl)}` : '—'}
                           </td>
                           <td className={r?.pnlPct != null ? (r.pnlPct >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
                             {r?.pnlPct != null ? `${r.pnlPct >= 0 ? '+' : ''}${fmt(r.pnlPct, 2)}%` : '—'}
