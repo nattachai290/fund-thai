@@ -39,14 +39,15 @@ export async function lookupProjId(fund) {
   }
 
   const matched =
-    items.find((it) => it.fund_class_name === classFundName) ??
+    items.find((it) => it.proj_abbr_name === projectInfo && it.fund_class_name === classFundName) ??
     items.find((it) => it.proj_abbr_name === projectInfo) ??
+    items.find((it) => it.fund_class_name === classFundName) ??
     (items.length === 1 ? items[0] : null);
 
   if (!matched) return { projId: null, classFundName: null, isDividend: false };
   return {
     projId: matched.proj_id,
-    classFundName: matched.fund_class_name,
+    classFundName: matched.fund_class_name ?? null,
     isDividend: matched.fund_class_detail?.includes('ปันผล') ?? false,
   };
 }
@@ -70,9 +71,12 @@ export async function fetchNAV(projId, classFundName, days = 1000) {
 
     try {
       const data = await secFetch(`${SEC_ORIGIN}/v2/fund/daily-info/nav?${params}`);
-      for (const row of data.items ?? []) {
-        // filter เฉพาะ class ที่ต้องการ — ป้องกัน proj_id เดียวกันมีหลาย class
-        if (classFundName && row.fund_class_name !== classFundName) continue;
+      const items = data.items ?? [];
+      // ถ้า classFundName ไม่ตรงกับ class ใดเลยใน chunk → ไม่ filter (เอาทั้งหมด)
+      const classes = new Set(items.map((r) => r.fund_class_name));
+      const useFilter = classFundName && classes.has(classFundName);
+      for (const row of items) {
+        if (useFilter && row.fund_class_name !== classFundName) continue;
         const nav = parseFloat(row.last_val ?? 0);
         if (nav > 0 && row.nav_date) navMap[row.nav_date] = nav;
       }
