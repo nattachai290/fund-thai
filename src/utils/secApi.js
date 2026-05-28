@@ -1,4 +1,8 @@
-import { SEC_API_KEY, SEC_BASE } from '../config/google';
+import { SEC_API_KEY } from '../config/google';
+
+// dev: /sec-api → proxy ผ่าน vite → https://api.sec.or.th
+// prod: ใช้ VITE_SEC_PROXY (Cloudflare Worker URL) ถ้าไม่ set จะ fallback ตรง (CORS error)
+const SEC_BASE = import.meta.env.VITE_SEC_PROXY ?? '/sec-api';
 
 function secHeaders() {
   return {
