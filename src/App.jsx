@@ -75,7 +75,19 @@ export default function App() {
       .catch((e) => console.error('loadFundConfig:', e));
   }, [user]);
 
-  const fetchFundNav = useCallback(async (fund) => {
+  const fetchFundNav = useCallback(async (fund, forceRefresh = false) => {
+    // check sessionStorage cache first (valid for current browser session)
+    const cacheKey = `nav_${fund.code}`;
+    if (!forceRefresh) {
+      try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          setNavData((p) => ({ ...p, [fund.code]: JSON.parse(cached) }));
+          return;
+        }
+      } catch {}
+    }
+
     setLoadingNav((p) => ({ ...p, [fund.code]: true }));
     setErrorNav((p) => ({ ...p, [fund.code]: null }));
     try {
@@ -91,7 +103,9 @@ export default function App() {
       }
       const rows = await fetchNAV(projId, fund.classFundName);
       if (!rows.length) throw new Error('ไม่มีข้อมูล NAV');
-      setNavData((p) => ({ ...p, [fund.code]: buildNavWithMacd(rows) }));
+      const data = buildNavWithMacd(rows);
+      try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
+      setNavData((p) => ({ ...p, [fund.code]: data }));
     } catch (e) {
       setErrorNav((p) => ({ ...p, [fund.code]: e.message }));
     } finally {
@@ -233,7 +247,7 @@ export default function App() {
                 <div key={fund.code} className="fund-card fund-card-error">
                   <h3>{fund.code}</h3>
                   <p>{errorNav[fund.code]}</p>
-                  <button className="btn btn-retry" onClick={() => fetchFundNav(fund)}>
+                  <button className="btn btn-retry" onClick={() => fetchFundNav(fund, true)}>
                     ลองใหม่
                   </button>
                 </div>
