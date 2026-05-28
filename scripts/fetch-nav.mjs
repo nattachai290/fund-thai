@@ -1,5 +1,5 @@
 /**
- * Fetches NAV data from SEC Thailand API, calculates MACD,
+ * Fetches NAV data from SEC Thailand API v2, calculates MACD,
  * saves JSON to public/data/, and sends Telegram notifications.
  *
  * Secrets required (GitHub Actions):
@@ -7,10 +7,11 @@
  *   TELEGRAM_BOT_TOKEN  - from @BotFather
  *   TELEGRAM_CHAT_ID    - your chat/group ID
  *
- * SEC API flow:
- *   1. GET /FundFactsheet/fund/amc                → list all AMCs
- *   2. GET /FundFactsheet/fund/amc/{id}           → list funds + proj_id
- *   3. GET /FundDailyInfo/{proj_id}/dailynav/{date} → NAV per day
+ * SEC API v2 flow:
+ *   1. GET /v2/fund/general-info/profiles?fund_status=Registered&project_info=X&company_info=Y
+ *      → find proj_id by matching fund_class_name
+ *   2. GET /v2/fund/daily-info/nav?proj_id=X&start_nav_date=YYYY-MM-DD&end_nav_date=YYYY-MM-DD
+ *      → fetch NAV history by date range
  */
 
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'fs';
@@ -23,28 +24,44 @@ const DATA_DIR = join(ROOT, 'public', 'data');
 const PROJ_ID_CACHE = join(DATA_DIR, '_proj_id_cache.json');
 
 // ── Config ────────────────────────────────────────────────────────────────────
+// projectInfo  = ค่าที่ใส่ใน query param project_info (proj_abbr_name ของกลุ่ม ไม่มี class suffix)
+// companyInfo  = ค่าที่ใส่ใน query param company_info (ชื่อธนาคาร/บลจ. เพื่อกันผลลัพธ์ที่ใกล้กัน)
+// classFundName = ค่า fund_class_name ใน response ที่ต้องการ match เพื่อเอา proj_id
 const FUNDS = [
-  { code: 'LHESPORT-D',     secCode: 'LHESPORT',    name: 'LH E-Sport' },
-  { code: 'LHSEMICON-D',    secCode: 'LHSEMICON',   name: 'LH Semiconductor' },
-  { code: 'K-GOLD-A(D)',    secCode: 'K-GOLD',       name: 'K Gold A' },
-  { code: 'ONE-GLOBFIN-RD', secCode: 'ONE-GLOBFIN',  name: 'ONE Global Finance' },
-  { code: 'K-GLOBE',                                  name: 'K Globe' },
-  { code: 'K-USXNDQ-A(D)', secCode: 'K-USXNDQ',     name: 'K US NASDAQ A' },
-  { code: 'SCBNK225D',      secCode: 'SCBNKY225',    name: 'SCB Nikkei 225' },
-  { code: 'KF-HJAPAND',                               name: 'KF H-Japan D' },
-  { code: 'SCBBLN',         secCode: 'SCBBLNFUND',   name: 'SCB Balanced' },
-  { code: 'B-USALPHA',                                name: 'B US Alpha' },
-  { code: 'SCBS&P500',      secCode: 'SCBSP500T1',   name: 'SCB S&P500' },
-  { code: 'KF-JPSCAPD',                               name: 'KF JP Small Cap D' },
+  { code: 'LHESPORT-D',     name: 'LH E-Sport',        projectInfo: 'LHESPORT',    companyInfo: '',         classFundName: 'LHESPORT-D'     },
+  { code: 'LHSEMICON-D',    name: 'LH Semiconductor',   projectInfo: 'LHSEMICON',   companyInfo: '',         classFundName: 'LHSEMICON-D'    },
+  { code: 'K-GOLD-A(D)',    name: 'K Gold A',           projectInfo: 'K-GOLD',      companyInfo: 'KASIKORN', classFundName: 'K-GOLD-A(D)'    },
+  { code: 'ONE-GLOBFIN-RD', name: 'ONE Global Finance', projectInfo: 'ONE-GLOBFIN', companyInfo: '',         classFundName: 'ONE-GLOBFIN-RD'  },
+  { code: 'K-GLOBE',        name: 'K Globe',            projectInfo: 'K-GLOBE',     companyInfo: 'KASIKORN', classFundName: 'K-GLOBE'         },
+  { code: 'K-USXNDQ-A(D)',  name: 'K US NASDAQ A',      projectInfo: 'K-USXNDQ',    companyInfo: 'KASIKORN', classFundName: 'K-USXNDQ-A(D)'  },
+  { code: 'SCBNK225D',      name: 'SCB Nikkei 225',     projectInfo: 'SCBNK225',    companyInfo: 'SCB',      classFundName: 'SCBNK225D'       },
+  { code: 'KF-HJAPAND',     name: 'KF H-Japan D',       projectInfo: 'KF-HJAPAN',   companyInfo: 'Krungsri', classFundName: 'KF-HJAPAND'      },
+  { code: 'SCBBLN',         name: 'SCB Balanced',       projectInfo: 'SCBBLN',      companyInfo: 'SCB',      classFundName: 'SCBBLN'          },
+  { code: 'B-USALPHA',      name: 'B US Alpha',         projectInfo: 'B-USALPHA',   companyInfo: 'BBL',      classFundName: 'B-USALPHA'       },
+  { code: 'SCBS&P500',      name: 'SCB S&P500',         projectInfo: 'SCBS&P500',   companyInfo: 'SCB',      classFundName: 'SCBS&P500'       },
+  { code: 'KF-JPSCAPD',     name: 'KF JP Small Cap D',  projectInfo: 'KF-JPSCAPD',  companyInfo: 'Krungsri', classFundName: 'KF-JPSCAPD'      },
 ];
+
+// EXTRA_FUNDS env: comma-separated "code:projectInfo:companyInfo:classFundName:name"
+// e.g. "BGOLD:BGOLD:BBL:BGOLD:B Gold"
+function parseExtraFunds() {
+  const raw = process.env.EXTRA_FUNDS ?? '';
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const [code, projectInfo, companyInfo, classFundName, ...nameParts] = s.split(':');
+      return { code, projectInfo, companyInfo: companyInfo ?? '', classFundName: classFundName ?? code, name: nameParts.join(':') || code };
+    });
+}
 
 const MACD_SHORT = 12;
 const MACD_LONG = 26;
 const MACD_SIGNAL = 9;
 const HISTORY_DAYS = 250;
 
-const SEC_KEY_DAILY = process.env.SEC_API_KEY_DAILY ?? '';
-const SEC_KEY_FACTSHEET = process.env.SEC_API_KEY_FACTSHEET ?? '';
+const SEC_API_KEY = process.env.SEC_API_KEY ?? process.env.SEC_API_KEY_DAILY ?? '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID ?? '';
 const SEC_BASE = 'https://api.sec.or.th';
@@ -54,29 +71,23 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function secHeaders(key) {
+function secHeaders() {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(key ? { 'Ocp-Apim-Subscription-Key': key } : {}),
+    'cache-control': 'no-cache',
+    ...(SEC_API_KEY ? { 'ocp-apim-subscription-key': SEC_API_KEY } : {}),
   };
 }
 
-function factsheetHeaders() { return secHeaders(SEC_KEY_FACTSHEET); }
-function dailyHeaders()     { return secHeaders(SEC_KEY_DAILY); }
-
-async function secFetch(url, headers) {
-  const res = await fetch(url, { headers, signal: AbortSignal.timeout(15000) });
-  if (res.status === 204) return [];
+async function secFetch(url) {
+  const res = await fetch(url, { headers: secHeaders(), signal: AbortSignal.timeout(15000) });
+  if (res.status === 204) return { items: [], next_cursor: null };
   if (!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
   return res.json();
 }
 
 // ── proj_id lookup ─────────────────────────────────────────────────────────────
-function normCode(s) {
-  return s.replace(/[\s\-()\[\]]/g, '').toUpperCase();
-}
-
 function loadProjIdCache() {
   try {
     return JSON.parse(readFileSync(PROJ_ID_CACHE, 'utf8'));
@@ -90,42 +101,55 @@ function saveProjIdCache(map) {
   writeFileSync(PROJ_ID_CACHE, JSON.stringify(map, null, 2));
 }
 
-function resolveProjId(map, code) {
-  if (map[code]) return map[code];
-  const norm = normCode(code);
-  for (const [key, val] of Object.entries(map)) {
-    if (normCode(key) === norm) return val;
+async function fetchProfilesAllPages(projectInfo, companyInfo) {
+  const items = [];
+  const params = new URLSearchParams({ fund_status: 'Registered', project_info: projectInfo });
+  if (companyInfo) params.set('company_info', companyInfo);
+
+  let url = `${SEC_BASE}/v2/fund/general-info/profiles?${params}`;
+
+  while (url) {
+    const data = await secFetch(url);
+    items.push(...(data.items ?? []));
+    const cursor = data.next_cursor;
+    if (!cursor || cursor === 'xxxx-xxx-xxx') break;
+    const nextParams = new URLSearchParams(params);
+    nextParams.set('cursor', cursor);
+    url = `${SEC_BASE}/v2/fund/general-info/profiles?${nextParams}`;
+    await sleep(200);
   }
-  return null;
+
+  return items;
 }
 
 async function buildProjIdMap(funds) {
   const cache = loadProjIdCache();
-  const missing = funds.filter(({ code, secCode }) => !resolveProjId(cache, secCode ?? code));
+  const missing = funds.filter((f) => !cache[f.code]);
   if (!missing.length) return cache;
 
-  console.log(`🔍 Looking up proj_id for: ${missing.map((f) => f.secCode ?? f.code).join(', ')}`);
+  console.log(`🔍 Looking up proj_id for: ${missing.map((f) => f.code).join(', ')}`);
 
-  const amcs = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc`, factsheetHeaders());
-  const amcList = Array.isArray(amcs) ? amcs : (amcs?.Data ?? amcs?.data ?? []);
-
-  for (const amc of amcList) {
-    const uid = amc.unique_id ?? amc.uniqueId ?? amc.id;
-    if (!uid) continue;
-    await sleep(200);
-
-    let funds;
+  for (const fund of missing) {
+    await sleep(300);
     try {
-      funds = await secFetch(`${SEC_BASE}/FundFactsheet/fund/amc/${uid}`, factsheetHeaders());
-    } catch {
-      continue;
-    }
-    const fundList = Array.isArray(funds) ? funds : (funds?.Data ?? funds?.data ?? []);
+      const items = await fetchProfilesAllPages(fund.projectInfo, fund.companyInfo);
 
-    for (const f of fundList) {
-      const abbr = f.proj_abbr_name ?? f.projAbbrName ?? f.abbr_name ?? '';
-      const projId = f.proj_id ?? f.projId ?? f.id;
-      if (abbr && projId) cache[abbr] = projId;
+      const matched =
+        items.find((it) => it.fund_class_name === fund.classFundName) ??
+        items.find((it) => it.proj_abbr_name === fund.projectInfo) ??
+        (items.length === 1 ? items[0] : null);
+
+      if (matched?.proj_id) {
+        cache[fund.code] = matched.proj_id;
+        console.log(`  ✅ ${fund.code} → ${matched.proj_id} (class: ${matched.fund_class_name})`);
+      } else {
+        console.error(`  ❌ proj_id not found for ${fund.code} (got ${items.length} results)`);
+        if (items.length) {
+          console.error(`     Available classes: ${items.map((it) => it.fund_class_name).join(', ')}`);
+        }
+      }
+    } catch (err) {
+      console.error(`  ❌ ${fund.code}: ${err.message}`);
     }
   }
 
@@ -134,36 +158,35 @@ async function buildProjIdMap(funds) {
 }
 
 // ── NAV fetching ──────────────────────────────────────────────────────────────
-function getDatesInRange(days) {
-  const dates = [];
-  for (let i = days; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000);
-    const day = d.getDay();
-    if (day === 0 || day === 6) continue; // skip weekends
-    dates.push(d.toISOString().slice(0, 10).replace(/-/g, ''));
-  }
-  return dates;
+function isoDate(d) {
+  return d.toISOString().slice(0, 10);
 }
 
 async function fetchNAVHistory(projId) {
-  // Fetch from cache first; only pull dates we don't have
-  const dates = getDatesInRange(HISTORY_DAYS);
+  const endDate = new Date();
+  const startDate = new Date(Date.now() - HISTORY_DAYS * 86400000);
   const navMap = {};
 
-  for (const date of dates) {
-    await sleep(150);
-    try {
-      const data = await secFetch(`${SEC_BASE}/FundDailyInfo/${projId}/dailynav/${date}`, dailyHeaders());
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) continue;
-      const nav = parseFloat(row.nav_value ?? row.navValue ?? row.nav ?? 0);
-      if (nav > 0) {
-        const iso = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`;
-        navMap[iso] = nav;
-      }
-    } catch {
-      // date not found or API error — skip
+  const params = new URLSearchParams({
+    proj_id: projId,
+    start_nav_date: isoDate(startDate),
+    end_nav_date: isoDate(endDate),
+  });
+
+  let url = `${SEC_BASE}/v2/fund/daily-info/nav?${params}`;
+
+  while (url) {
+    const data = await secFetch(url);
+    for (const row of data.items ?? []) {
+      const nav = parseFloat(row.last_val ?? 0);
+      if (nav > 0 && row.nav_date) navMap[row.nav_date] = nav;
     }
+    const cursor = data.next_cursor;
+    if (!cursor || cursor === 'xxxx-xxx-xxx') break;
+    const nextParams = new URLSearchParams(params);
+    nextParams.set('cursor', cursor);
+    url = `${SEC_BASE}/v2/fund/daily-info/nav?${nextParams}`;
+    await sleep(150);
   }
 
   return Object.entries(navMap)
@@ -223,7 +246,6 @@ function detectCrossover(data) {
   const prev = data[data.length - 2];
   const curr = data[data.length - 1];
   if (!prev.signal || !curr.signal) return null;
-  // สัญญาณที่ต้องการ: fast ตัด slow ขึ้นขณะที่ MACD ยังอยู่ใต้ 0
   if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0) return 'bullish_below_zero';
   return null;
 }
@@ -299,26 +321,18 @@ function buildReport(results) {
 async function main() {
   console.log(`\n🚀 Starting NAV fetch — ${new Date().toISOString()}\n`);
 
-  if (!SEC_KEY_DAILY)     console.warn('⚠️  SEC_API_KEY_DAILY not set');
-  if (!SEC_KEY_FACTSHEET) console.warn('⚠️  SEC_API_KEY_FACTSHEET not set');
+  if (!SEC_API_KEY) console.warn('⚠️  SEC_API_KEY not set');
 
-  const extraCodes = (process.env.EXTRA_FUNDS ?? '')
-    .split(',').map((s) => s.trim()).filter(Boolean);
-  const allFunds = [
-    ...FUNDS,
-    ...extraCodes
-      .filter((c) => !FUNDS.some((f) => f.code === c || f.secCode === c))
-      .map((c) => ({ code: c, name: c })),
-  ];
+  const extraFunds = parseExtraFunds();
+  const allFunds = [...FUNDS, ...extraFunds.filter((e) => !FUNDS.find((f) => f.code === e.code))];
 
-  // Step 1: resolve proj_id for all funds
   const projIdMap = await buildProjIdMap(allFunds);
 
   const results = [];
 
-  for (const { code, secCode, name } of allFunds) {
+  for (const { code, name } of allFunds) {
     console.log(`\nFetching: ${code}`);
-    const projId = resolveProjId(projIdMap, secCode ?? code);
+    const projId = projIdMap[code];
 
     if (!projId) {
       console.error(`  ❌ proj_id not found for ${code}`);

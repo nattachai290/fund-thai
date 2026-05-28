@@ -12,8 +12,6 @@ import {
   ReferenceLine,
   Cell,
 } from 'recharts';
-import { FUNDS } from '../config/funds';
-
 const fmt = (v) => (v == null ? 'N/A' : Number(v).toFixed(4));
 const fmtDate = (d) => (d ? d.slice(5) : '');
 
@@ -42,8 +40,8 @@ function MacdTooltip({ active, payload, label }) {
   );
 }
 
-export default function FundChart({ code, data }) {
-  const fund = FUNDS.find((f) => f.code === code);
+export default function FundChart({ code, name, data }) {
+  const fund = { name };
   const displayData = data.slice(-120);
 
   const lastRow = displayData[displayData.length - 1] ?? {};
