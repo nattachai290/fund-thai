@@ -89,21 +89,6 @@ export default function FundManager({ funds, onSave, onClose }) {
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* รายการกองทุน */}
-        <div className="fund-list">
-          {funds.length === 0 && (
-            <p className="empty-hint">ยังไม่มีกองทุน — เพิ่มด้านล่างได้เลย</p>
-          )}
-          {funds.map((f) => (
-            <div key={f.code} className="fund-row">
-              <div className="fund-row-info">
-                <strong>{f.code}</strong>
-                <span>{f.name}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* ฟอร์มเพิ่มกองทุน */}
         <div className="add-fund-form">
           <h3>เพิ่มกองทุน</h3>
