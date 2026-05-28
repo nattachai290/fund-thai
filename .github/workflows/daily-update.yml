@@ -42,8 +42,7 @@ jobs:
       - name: Fetch NAV & Calculate MACD
         run: node scripts/fetch-nav.mjs
         env:
-          SEC_API_KEY_DAILY: ${{ secrets.SEC_API_KEY_DAILY }}
-          SEC_API_KEY_FACTSHEET: ${{ secrets.SEC_API_KEY_FACTSHEET }}
+          SEC_API_KEY: ${{ secrets.SEC_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           EXTRA_FUNDS: ${{ github.event.inputs.extra_funds }}
