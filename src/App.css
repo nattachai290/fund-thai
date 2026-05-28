@@ -332,30 +332,29 @@ body {
 }
 .add-fund-form h3 { font-size: 0.9rem; color: #94a3b8; }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-}
-.form-grid label {
+.form-label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: #64748b;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-weight: 500;
 }
-.form-grid label:last-child { grid-column: 1 / -1; }
-.form-grid input {
-  padding: 0.4rem 0.7rem;
-  border-radius: 6px;
+.form-input {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
   border: 1px solid #334155;
   background: #0f172a;
   color: #e2e8f0;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   outline: none;
+  transition: border-color 0.15s;
 }
-.form-grid input:focus { border-color: #3b82f6; }
-.hint { font-size: 0.68rem; color: #475569; }
+.form-input:focus { border-color: #3b82f6; }
+.form-select {
+  cursor: pointer;
+  appearance: auto;
+}
 
 .form-error { font-size: 0.8rem; color: #f87171; }
 
