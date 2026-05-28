@@ -1,36 +1,39 @@
 import { SEC_API_KEY } from '../config/google';
 
-// dev: Vite proxy /api/sec → https://api.sec.or.th
-// prod (Vercel): /api/sec/[...path].js serverless function
-const SEC_BASE = '/api/sec';
+const SEC_ORIGIN = 'https://api.sec.or.th';
 
-function secHeaders() {
-  return {
-    'ocp-apim-subscription-key': SEC_API_KEY,
-    'cache-control': 'no-cache',
-  };
+// dev: Vite proxy /sec-proxy → https://api.sec.or.th
+// prod: /api/sec?url=<encoded full SEC URL>
+function proxyFetchUrl(secUrl) {
+  if (import.meta.env.DEV) {
+    return secUrl.replace(SEC_ORIGIN, '/sec-proxy');
+  }
+  return `/api/sec?url=${encodeURIComponent(secUrl)}`;
 }
 
-async function secFetch(url) {
-  const res = await fetch(url, { headers: secHeaders() });
+async function secFetch(secUrl) {
+  const fetchUrl = proxyFetchUrl(secUrl);
+  const headers = import.meta.env.DEV
+    ? { 'ocp-apim-subscription-key': SEC_API_KEY, 'cache-control': 'no-cache' }
+    : {};
+  const res = await fetch(fetchUrl, { headers });
   if (!res.ok) throw new Error(`SEC API ${res.status}`);
   return res.json();
 }
 
-// วน pagination จนครบ — ถ้า cursor ใช้ไม่ได้ก็ใช้ข้อมูลที่ได้มาแล้วพอ
-async function fetchAllPages(firstUrl, extractItems) {
+async function fetchAllPages(firstSecUrl, extractItems) {
   const allItems = [];
-  let url = firstUrl;
-  const baseParams = new URL(firstUrl, 'http://x').searchParams;
+  let secUrl = firstSecUrl;
+  const base = firstSecUrl.split('?')[0];
+  const baseParams = new URLSearchParams(firstSecUrl.split('?')[1] ?? '');
 
-  while (url) {
+  while (secUrl) {
     let data;
     try {
-      data = await secFetch(url);
+      data = await secFetch(secUrl);
     } catch {
-      break; // cursor อาจหมดอายุหรือ invalid — ใช้ข้อมูลที่มีแล้ว
+      break;
     }
-
     allItems.push(...extractItems(data));
 
     const cursor = data.next_cursor;
@@ -38,19 +41,18 @@ async function fetchAllPages(firstUrl, extractItems) {
 
     const next = new URLSearchParams(baseParams);
     next.set('cursor', cursor);
-    url = firstUrl.split('?')[0] + '?' + next;
+    secUrl = `${base}?${next}`;
   }
 
   return allItems;
 }
 
-// หา proj_id จาก profiles API โดย match fund_class_name
 export async function lookupProjId(fund) {
   const { projectInfo, companyInfo, classFundName } = fund;
   const params = new URLSearchParams({ fund_status: 'Registered', project_info: projectInfo });
   if (companyInfo) params.set('company_info', companyInfo);
 
-  const firstUrl = `${SEC_BASE}/v2/fund/general-info/profiles?${params}`;
+  const firstUrl = `${SEC_ORIGIN}/v2/fund/general-info/profiles?${params}`;
   const items = await fetchAllPages(firstUrl, (d) => d.items ?? []);
 
   return (
@@ -60,7 +62,6 @@ export async function lookupProjId(fund) {
   );
 }
 
-// ดึง NAV history (date range) — returns [{date, nav}]
 export async function fetchNAV(projId, days = 250) {
   const end = new Date();
   const start = new Date(Date.now() - days * 86400000);
@@ -72,7 +73,7 @@ export async function fetchNAV(projId, days = 250) {
     end_nav_date: fmt(end),
   });
 
-  const firstUrl = `${SEC_BASE}/v2/fund/daily-info/nav?${params}`;
+  const firstUrl = `${SEC_ORIGIN}/v2/fund/daily-info/nav?${params}`;
   const rows = await fetchAllPages(firstUrl, (d) => d.items ?? []);
 
   const navMap = {};

@@ -6,10 +6,10 @@ export default defineConfig({
   base: process.env.GITHUB_ACTIONS ? '/fund-thai/' : '/',
   server: {
     proxy: {
-      '/api/sec': {
+      '/sec-proxy': {
         target: 'https://api.sec.or.th',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/sec/, ''),
+        rewrite: (path) => path.replace(/^\/sec-proxy/, ''),
       },
     },
   },
