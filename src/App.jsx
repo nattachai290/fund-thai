@@ -93,10 +93,13 @@ export default function App() {
     try {
       let projId = fund.projId;
       if (!projId) {
-        projId = await lookupProjId(fund);
+        const result = await lookupProjId(fund);
+        projId = result.projId;
         if (!projId) throw new Error('ไม่พบ proj_id — ตรวจสอบ Project Info / Company Info');
         setFunds((prev) => {
-          const updated = prev.map((f) => (f.code === fund.code ? { ...f, projId } : f));
+          const updated = prev.map((f) =>
+            f.code === fund.code ? { ...f, projId, isDividend: result.isDividend } : f
+          );
           saveFundConfig(updated).catch(console.error);
           return updated;
         });
@@ -259,6 +262,7 @@ export default function App() {
                 key={fund.code}
                 code={fund.code}
                 name={fund.name}
+                isDividend={fund.isDividend}
                 data={navData[fund.code]}
               />
             );
@@ -314,6 +318,7 @@ export default function App() {
                             <div className="portfolio-fund-name">
                               <strong>{fund.code}</strong>
                               <span>{fund.name}</span>
+                              {fund.isDividend && <span className="badge-dividend">ปันผล</span>}
                             </div>
                           </td>
                           <td>

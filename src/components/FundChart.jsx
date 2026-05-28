@@ -40,7 +40,7 @@ function MacdTooltip({ active, payload, label }) {
   );
 }
 
-export default function FundChart({ code, name, data }) {
+export default function FundChart({ code, name, data, isDividend }) {
   const fund = { name };
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -64,7 +64,7 @@ export default function FundChart({ code, name, data }) {
     <div className="fund-card">
       <div className="fund-card-header">
         <div>
-          <h3>{code}</h3>
+          <h3>{code}{isDividend && <span className="badge-dividend">ปันผล</span>}</h3>
           <span className="fund-name">{fund?.name}</span>
         </div>
         <div className="fund-stats">
