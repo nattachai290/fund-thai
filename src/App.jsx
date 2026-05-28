@@ -10,9 +10,30 @@ import './App.css';
 
 const TABS = ['MACD', 'Portfolio'];
 
+// Fill missing trading days with previous NAV so EMA treats each calendar day equally
+function forwardFillTradingDays(navRows) {
+  if (!navRows.length) return navRows;
+  const filled = [];
+  const start = new Date(navRows[0].date);
+  const end = new Date(navRows[navRows.length - 1].date);
+  const navMap = Object.fromEntries(navRows.map((r) => [r.date, r.nav]));
+  let lastNav = navRows[0].nav;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay();
+    if (day === 0 || day === 6) continue; // skip weekends
+    const dateStr = d.toISOString().slice(0, 10);
+    if (navMap[dateStr] != null) lastNav = navMap[dateStr];
+    filled.push({ date: dateStr, nav: lastNav });
+  }
+  return filled;
+}
+
 function buildNavWithMacd(navRows) {
-  const macdData = calculateMACD(navRows.map((r) => r.nav));
-  return navRows.map((row, i) => ({ ...row, ...macdData[i] }));
+  const filled = forwardFillTradingDays(navRows);
+  const macdData = calculateMACD(filled.map((r) => r.nav));
+  // return only rows that have real NAV data (not filled), but with MACD from filled calc
+  const filledMap = Object.fromEntries(filled.map((r, i) => [r.date, macdData[i]]));
+  return navRows.map((row) => ({ ...row, ...(filledMap[row.date] ?? {}) }));
 }
 
 function fmt(v, decimals = 4) {
