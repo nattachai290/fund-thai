@@ -1,8 +1,1 @@
-{
-  "rewrites": [
-    {
-      "source": "/sec-api/:path*",
-      "destination": "/api/sec/:path*"
-    }
-  ]
-}
+{}

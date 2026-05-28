@@ -1,8 +1,8 @@
 import { SEC_API_KEY } from '../config/google';
 
-// dev: Vite proxy /sec-api → https://api.sec.or.th
-// prod (Vercel): vercel.json rewrite /sec-api → /api/sec → https://api.sec.or.th
-const SEC_BASE = import.meta.env.VITE_SEC_PROXY ?? '/sec-api';
+// dev: Vite proxy /api/sec → https://api.sec.or.th
+// prod (Vercel): /api/sec/[...path].js serverless function
+const SEC_BASE = '/api/sec';
 
 function secHeaders() {
   return {
