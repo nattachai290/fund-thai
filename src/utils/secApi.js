@@ -38,11 +38,17 @@ export async function lookupProjId(fund) {
     secUrl = `${SEC_ORIGIN}/v2/fund/general-info/profiles?${next}`;
   }
 
-  return (
-    items.find((it) => it.fund_class_name === classFundName)?.proj_id ??
-    items.find((it) => it.proj_abbr_name === projectInfo)?.proj_id ??
-    (items.length === 1 ? items[0].proj_id : null)
-  );
+  const matched =
+    items.find((it) => it.fund_class_name === classFundName) ??
+    items.find((it) => it.proj_abbr_name === projectInfo) ??
+    (items.length === 1 ? items[0] : null);
+
+  if (!matched) return { projId: null, classFundName: null, isDividend: false };
+  return {
+    projId: matched.proj_id,
+    classFundName: matched.fund_class_name,
+    isDividend: matched.fund_class_detail?.includes('ปันผล') ?? false,
+  };
 }
 
 // แบ่ง request เป็น chunk 90 วัน เพื่อหลีกเลี่ยง cursor pagination

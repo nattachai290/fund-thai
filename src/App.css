@@ -336,6 +336,17 @@ body {
   flex-shrink: 0;
 }
 .btn-remove:hover { color: #f87171; }
+.badge-dividend {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #1d4ed8;
+  color: #bfdbfe;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
 .btn-edit-portfolio {
   background: transparent;
   border: none;
