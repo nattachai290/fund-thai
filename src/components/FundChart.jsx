@@ -133,7 +133,11 @@ export default function FundChart({ code, name, data }) {
             strokeDasharray="4 2"
           />
           <Legend
-            formatter={(v) => ({ macd: 'MACD', signal: 'Signal', histogram: 'Histogram' }[v] ?? v)}
+            formatter={(v) => ({ macd: 'MACD', signal: 'Signal' }[v] ?? v)}
+            payload={[
+              { value: 'macd', type: 'line', color: '#f59e0b' },
+              { value: 'signal', type: 'line', color: '#ef4444' },
+            ]}
           />
         </ComposedChart>
       </ResponsiveContainer>
