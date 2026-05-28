@@ -104,9 +104,8 @@ export default function FundManager({ funds, onSave, onClose }) {
 
   function addFund(item) {
     if (funds.find((f) => f.code === item.code)) { setError('มี fund นี้อยู่แล้ว'); return; }
-    const defaultName = item.classFundName === 'main'
-      ? item.projAbbr
-      : `${item.name} (${item.classFundName})`;
+    const suffix = item.classFundName === 'main' ? item.projAbbr : item.classFundName;
+    const defaultName = `${item.name} (${suffix})`;
     const newFund = {
       code: item.code,
       name: defaultName || item.code,
