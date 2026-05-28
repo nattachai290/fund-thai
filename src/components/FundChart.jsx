@@ -42,7 +42,10 @@ function MacdTooltip({ active, payload, label }) {
 
 export default function FundChart({ code, name, data }) {
   const fund = { name };
-  const displayData = data.slice(-120);
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const cutoff = sixMonthsAgo.toISOString().slice(0, 10);
+  const displayData = data.filter((r) => r.date >= cutoff);
 
   const lastRow = displayData[displayData.length - 1] ?? {};
   const crossover =
@@ -130,7 +133,11 @@ export default function FundChart({ code, name, data }) {
             strokeDasharray="4 2"
           />
           <Legend
-            formatter={(v) => ({ macd: 'MACD', signal: 'Signal', histogram: 'Histogram' }[v] ?? v)}
+            formatter={(v) => ({ macd: 'MACD', signal: 'Signal' }[v] ?? v)}
+            payload={[
+              { value: 'macd', type: 'line', color: '#f59e0b' },
+              { value: 'signal', type: 'line', color: '#ef4444' },
+            ]}
           />
         </ComposedChart>
       </ResponsiveContainer>
