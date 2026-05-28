@@ -39,14 +39,15 @@ export async function lookupProjId(fund) {
   }
 
   const matched =
-    items.find((it) => it.fund_class_name === classFundName) ??
+    items.find((it) => it.proj_abbr_name === projectInfo && it.fund_class_name === classFundName) ??
     items.find((it) => it.proj_abbr_name === projectInfo) ??
+    items.find((it) => it.fund_class_name === classFundName) ??
     (items.length === 1 ? items[0] : null);
 
   if (!matched) return { projId: null, classFundName: null, isDividend: false };
   return {
     projId: matched.proj_id,
-    classFundName: matched.fund_class_name,
+    classFundName: matched.fund_class_name ?? null,
     isDividend: matched.fund_class_detail?.includes('ปันผล') ?? false,
   };
 }
