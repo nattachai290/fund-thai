@@ -43,9 +43,10 @@ export async function lookupProjId(fund) {
     items.find((it) => it.proj_abbr_name === projectInfo) ??
     (items.length === 1 ? items[0] : null);
 
-  if (!matched) return { projId: null, isDividend: false };
+  if (!matched) return { projId: null, classFundName: null, isDividend: false };
   return {
     projId: matched.proj_id,
+    classFundName: matched.fund_class_name,
     isDividend: matched.fund_class_detail?.includes('ปันผล') ?? false,
   };
 }

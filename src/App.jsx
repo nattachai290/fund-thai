@@ -98,7 +98,9 @@ export default function App() {
         if (!projId) throw new Error('ไม่พบ proj_id — ตรวจสอบ Project Info / Company Info');
         setFunds((prev) => {
           const updated = prev.map((f) =>
-            f.code === fund.code ? { ...f, projId, isDividend: result.isDividend } : f
+            f.code === fund.code
+              ? { ...f, projId, classFundName: result.classFundName ?? f.classFundName, isDividend: result.isDividend }
+              : f
           );
           saveFundConfig(updated).catch(console.error);
           return updated;
