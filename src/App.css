@@ -38,6 +38,7 @@ body {
 }
 .login-box h1 { font-size: 2rem; color: #f1f5f9; }
 .login-box p { font-size: 0.88rem; color: #94a3b8; line-height: 1.6; }
+.auth-loading { font-size: 0.82rem; color: #475569; }
 
 /* Header */
 .app-header {
@@ -220,6 +221,21 @@ body {
 .pnl-pos { color: #34d399 !important; }
 .pnl-neg { color: #f87171 !important; }
 
+.portfolio-input {
+  width: 90px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.portfolio-input:focus { border-color: #3b82f6; }
+.portfolio-input::placeholder { color: #475569; }
+
 /* Fund Manager Modal */
 .manager-overlay {
   position: fixed;
@@ -320,6 +336,18 @@ body {
   flex-shrink: 0;
 }
 .btn-remove:hover { color: #f87171; }
+.btn-edit-portfolio {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+.btn-edit-portfolio:hover { color: #93c5fd; }
+.portfolio-nav-cell { display: flex; flex-direction: column; gap: 0.1rem; }
+.edit-portfolio-panel { max-width: 360px; }
 
 .add-fund-form {
   background: #1e293b;
@@ -711,6 +739,11 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+}
+.nav-date {
+  font-size: 0.72rem;
+  color: #94a3b8;
   font-variant-numeric: tabular-nums;
 }
 .badge {

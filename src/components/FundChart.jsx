@@ -66,6 +66,7 @@ export default function FundChart({ code, name, data }) {
         </div>
         <div className="fund-stats">
           <span className="nav-value">NAV {fmt(lastRow.nav)}</span>
+          {lastRow.date && <span className="nav-date">{lastRow.date}</span>}
           {crossover === 'bullish_below_zero' && (
             <span className="badge badge-bull">🚀 Fast ตัด Slow ขึ้น (MACD &lt; 0)</span>
           )}
