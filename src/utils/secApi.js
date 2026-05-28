@@ -25,7 +25,7 @@ export async function searchFunds(companyInfo, keyword) {
   const data = await secFetch(`${SEC_ORIGIN}/v2/fund/general-info/profiles?${params}`);
   return (data.items ?? []).map((it) => ({
     projId: it.proj_id,
-    code: it.fund_class_name,
+    code: it.fund_class_name === 'main' ? it.proj_abbr_name : it.fund_class_name,
     name: it.proj_name_th,
     classFundName: it.fund_class_name,
     projAbbr: it.proj_abbr_name,
