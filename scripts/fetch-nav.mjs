@@ -59,7 +59,7 @@ function parseExtraFunds() {
 const MACD_SHORT = 12;
 const MACD_LONG = 26;
 const MACD_SIGNAL = 9;
-const HISTORY_DAYS = 250;
+const HISTORY_DAYS = 500;
 
 const SEC_API_KEY = process.env.SEC_API_KEY ?? process.env.SEC_API_KEY_DAILY ?? '';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';

@@ -47,7 +47,7 @@ export async function lookupProjId(fund) {
 
 // แบ่ง request เป็น chunk 90 วัน เพื่อหลีกเลี่ยง cursor pagination
 // แต่ละ chunk มี ~64 trading days ซึ่งน้อยกว่า page_size=100
-export async function fetchNAV(projId, classFundName, days = 250) {
+export async function fetchNAV(projId, classFundName, days = 500) {
   const fmt = (d) => d.toISOString().slice(0, 10);
   const CHUNK = 90;
   const navMap = {};
