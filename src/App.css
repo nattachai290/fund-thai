@@ -355,6 +355,11 @@ body {
   cursor: pointer;
   appearance: auto;
 }
+.form-optional {
+  font-size: 0.72rem;
+  color: #475569;
+  font-weight: 400;
+}
 
 .form-error { font-size: 0.8rem; color: #f87171; }
 

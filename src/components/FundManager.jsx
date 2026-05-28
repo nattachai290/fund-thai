@@ -156,12 +156,12 @@ export default function FundManager({ funds, onSave, onClose }) {
           </label>
 
           <label className="form-label">
-            ชื่อกองทุน
+            ชื่อกองทุน <span className="form-optional">(ถ้าไม่ใส่จะใช้ Fund Code)</span>
             <input
               className="form-input"
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
-              placeholder="ชื่อที่แสดงในกราฟ"
+              placeholder={form.code || 'ไม่บังคับ'}
               onKeyDown={(e) => e.key === 'Enter' && addFund()}
             />
           </label>
