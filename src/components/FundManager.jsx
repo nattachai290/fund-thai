@@ -35,6 +35,34 @@ const COMPANIES = [
   { label: 'สยาม ไนท์ (SIAM KNIGHT FUND)',    value: 'SIAM KNIGHT FUND' },
 ];
 
+const PREFIX_COMPANY = [
+  { prefix: 'KF',        value: 'KRUNGSRI' },
+  { prefix: 'K-',        value: 'KASIKORN' },
+  { prefix: 'SCB',       value: 'SCB' },
+  { prefix: 'LH',        value: 'LAND AND HOUSES' },
+  { prefix: 'TIS',       value: 'TISCO' },
+  { prefix: 'KT',        value: 'KRUNG THAI' },
+  { prefix: 'PRINCIPAL', value: 'PRINCIPAL ASSET' },
+  { prefix: 'BGOLD',     value: 'BBL' },
+  { prefix: 'B-',        value: 'BBL' },
+  { prefix: 'ONE',       value: 'ONE' },
+  { prefix: 'TMB',       value: 'TMB' },
+  { prefix: 'EASTSPRING',value: 'EASTSPRING' },
+  { prefix: 'ASP',       value: 'ASSET PLUS' },
+  { prefix: 'MFC',       value: 'MFC' },
+  { prefix: 'UOB',       value: 'UOB' },
+  { prefix: 'DAOL',      value: 'DAOL' },
+  { prefix: 'TALIS',     value: 'TALIS' },
+];
+
+function deriveCompanyInfo(code) {
+  const upper = code.toUpperCase();
+  for (const { prefix, value } of PREFIX_COMPANY) {
+    if (upper.startsWith(prefix.toUpperCase())) return value;
+  }
+  return '';
+}
+
 // auto-derive projectInfo จาก fund code
 // ตัด class suffix เช่น -A(D), -B(D), -RD, -AR ออก
 function deriveProjectInfo(code) {
@@ -58,7 +86,14 @@ export default function FundManager({ funds, onSave, onClose }) {
   const [error, setError] = useState('');
 
   function setField(field, value) {
-    setForm((p) => ({ ...p, [field]: value }));
+    setForm((p) => {
+      const next = { ...p, [field]: value };
+      if (field === 'code') {
+        const auto = deriveCompanyInfo(value);
+        if (auto && !p.companyInfo) next.companyInfo = auto;
+      }
+      return next;
+    });
   }
 
   function addFund() {
