@@ -19,6 +19,20 @@ async function secFetch(secUrl) {
   return res.json();
 }
 
+export async function searchFunds(companyInfo, keyword) {
+  const params = new URLSearchParams({ fund_status: 'Registered', company_info: companyInfo });
+  if (keyword) params.set('project_info', keyword);
+  const data = await secFetch(`${SEC_ORIGIN}/v2/fund/general-info/profiles?${params}`);
+  return (data.items ?? []).map((it) => ({
+    projId: it.proj_id,
+    code: it.fund_class_name,
+    name: it.proj_name_th,
+    classFundName: it.fund_class_name,
+    projAbbr: it.proj_abbr_name,
+    isDividend: it.fund_class_detail?.includes('ปันผล') ?? false,
+  }));
+}
+
 export async function lookupProjId(fund) {
   const { projectInfo, companyInfo, classFundName } = fund;
   const params = new URLSearchParams({ fund_status: 'Registered', project_info: projectInfo });

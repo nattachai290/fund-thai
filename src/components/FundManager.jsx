@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { searchFunds } from '../utils/secApi';
 
 // ธนาคาร/บลจ. ที่รองรับ — ค่าคือ company_info ที่ใช้ใน SEC API
 const COMPANIES = [
@@ -66,12 +67,13 @@ function deriveCompanyInfo(code) {
 // auto-derive projectInfo จาก fund code
 // ตัด class suffix เช่น -A(D), -B(D), -RD, -AR ออก
 function deriveProjectInfo(code) {
-  // มี parentheses: K-USXNDQ-A(D) → K-USXNDQ
+  // มี parentheses: K-USXNDQ-A(D) → K-USXNDQ, SCBSEMI(A) → SCBSEMI
   const parenIdx = code.indexOf('(');
   if (parenIdx > 0) {
     const beforeParen = code.slice(0, parenIdx);
     const lastDash = beforeParen.lastIndexOf('-');
     if (lastDash > 0) return beforeParen.slice(0, lastDash);
+    return beforeParen; // ไม่มี dash เช่น SCBSEMI(A)
   }
   // suffix 1-2 ตัวอักษร เช่น -D, -A, -RD, -AR, -RA
   const suffix = code.match(/^(.+)-([A-Z]{1,2})$/);
@@ -79,40 +81,45 @@ function deriveProjectInfo(code) {
   return code;
 }
 
-const EMPTY = { code: '', name: '', companyInfo: '' };
-
 export default function FundManager({ funds, onSave, onClose }) {
-  const [form, setForm] = useState(EMPTY);
+  const [company, setCompany] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const debounceRef = useRef(null);
 
-  function setField(field, value) {
-    setForm((p) => {
-      const next = { ...p, [field]: value };
-      if (field === 'code') {
-        const auto = deriveCompanyInfo(value);
-        if (auto && !p.companyInfo) next.companyInfo = auto;
-      }
-      return next;
-    });
-  }
+  useEffect(() => {
+    if (!company || keyword.length < 2) { setResults([]); return; }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const items = await searchFunds(company, keyword);
+        setResults(items.filter((it) => !funds.find((f) => f.code === it.code)));
+      } catch { setResults([]); }
+      finally { setSearching(false); }
+    }, 400);
+  }, [company, keyword]);
 
-  function addFund() {
-    const code = form.code.trim().toUpperCase();
-    if (!code) { setError('กรุณากรอก Fund Code'); return; }
-    if (funds.find((f) => f.code === code)) { setError('มี fund นี้อยู่แล้ว'); return; }
-
-    const projectInfo = deriveProjectInfo(code);
+  function addFund(item) {
+    if (funds.find((f) => f.code === item.code)) { setError('มี fund นี้อยู่แล้ว'); return; }
+    const suffix = item.classFundName === 'main' ? item.projAbbr : item.classFundName;
+    const defaultName = `${item.name} (${suffix})`;
     const newFund = {
-      code,
-      name: form.name.trim() || code,
-      projectInfo,
-      companyInfo: form.companyInfo,
-      classFundName: code,
+      code: item.code,
+      name: defaultName || item.code,
+      projectInfo: item.projAbbr,
+      companyInfo: company,
+      classFundName: item.classFundName,
+      projId: item.projId,
+      isDividend: item.isDividend,
       avgCost: null,
       unitBalance: null,
     };
     onSave([...funds, newFund]);
-    setForm(EMPTY);
+    setKeyword('');
+    setResults([]);
     setError('');
   }
 
@@ -120,43 +127,20 @@ export default function FundManager({ funds, onSave, onClose }) {
     <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="manager-panel">
         <div className="manager-header">
-          <h2>จัดการกองทุน</h2>
+          <h2>เพิ่มกองทุน</h2>
           <button className="btn-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* ฟอร์มเพิ่มกองทุน */}
         <div className="add-fund-form">
-          <h3>เพิ่มกองทุน</h3>
           {error && <p className="form-error">{error}</p>}
 
+          {/* Step 1: เลือก บลจ. */}
           <label className="form-label">
-            Fund Code
-            <input
-              className="form-input"
-              value={form.code}
-              onChange={(e) => setField('code', e.target.value)}
-              placeholder="เช่น BGOLD, K-USXNDQ-A(D)"
-              onKeyDown={(e) => e.key === 'Enter' && addFund()}
-            />
-          </label>
-
-          <label className="form-label">
-            ชื่อกองทุน <span className="form-optional">(ถ้าไม่ใส่จะใช้ Fund Code)</span>
-            <input
-              className="form-input"
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              placeholder={form.code || 'ไม่บังคับ'}
-              onKeyDown={(e) => e.key === 'Enter' && addFund()}
-            />
-          </label>
-
-          <label className="form-label">
-            ธนาคาร / บลจ.
+            1. เลือก ธนาคาร / บลจ.
             <select
               className="form-input form-select"
-              value={form.companyInfo}
-              onChange={(e) => setField('companyInfo', e.target.value)}
+              value={company}
+              onChange={(e) => { setCompany(e.target.value); setKeyword(''); setResults([]); }}
             >
               {COMPANIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -164,7 +148,36 @@ export default function FundManager({ funds, onSave, onClose }) {
             </select>
           </label>
 
-          <button className="btn btn-add" onClick={addFund}>+ เพิ่มกองทุน</button>
+          {/* Step 2: ค้นหากองทุน */}
+          {company && (
+            <label className="form-label">
+              2. ค้นหากองทุน
+              <input
+                className="form-input"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                placeholder="พิมพ์ชื่อย่อ เช่น BGOLD, USXNDQ"
+                autoFocus
+              />
+            </label>
+          )}
+
+          {/* Step 3: ผลลัพธ์ */}
+          {searching && <p className="search-hint">กำลังค้นหา…</p>}
+          {!searching && keyword.length >= 2 && results.length === 0 && (
+            <p className="search-hint">ไม่พบกองทุน</p>
+          )}
+          {results.length > 0 && (
+            <div className="search-results">
+              {results.map((item) => (
+                <button key={item.code} className="search-result-item" onClick={() => addFund(item)}>
+                  <span className="result-code">{item.code}</span>
+                  <span className="result-name">{item.name}</span>
+                  {item.isDividend && <span className="badge-dividend">ปันผล</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
