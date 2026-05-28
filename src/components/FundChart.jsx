@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
+  ReferenceDot,
   Cell,
 } from 'recharts';
 const fmt = (v) => (v == null ? 'N/A' : Number(v).toFixed(4));
@@ -48,17 +49,21 @@ export default function FundChart({ code, name, data, isDividend }) {
   const displayData = data.filter((r) => r.date >= cutoff);
 
   const lastRow = displayData[displayData.length - 1] ?? {};
-  const crossover =
-    displayData.length >= 2
-      ? (() => {
-          const prev = displayData[displayData.length - 2];
-          const curr = displayData[displayData.length - 1];
-          if (!prev?.signal || !curr?.signal) return null;
-          if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0)
-            return 'bullish_below_zero';
-          return null;
-        })()
-      : null;
+
+  // หาทุกจุดที่ MACD ตัด Signal ขึ้น ขณะ MACD < 0
+  const crossoverDots = [];
+  for (let i = 1; i < displayData.length; i++) {
+    const prev = displayData[i - 1];
+    const curr = displayData[i];
+    if (prev?.macd != null && curr?.macd != null && prev?.signal != null && curr?.signal != null) {
+      if (prev.macd < prev.signal && curr.macd >= curr.signal && curr.macd < 0) {
+        crossoverDots.push({ date: curr.date, macd: curr.macd });
+      }
+    }
+  }
+
+  const lastCrossover = crossoverDots[crossoverDots.length - 1] ?? null;
+  const crossover = lastCrossover && lastCrossover.date === lastRow.date ? 'bullish_below_zero' : null;
 
   return (
     <div className="fund-card">
@@ -100,7 +105,15 @@ export default function FundChart({ code, name, data, isDividend }) {
       </ResponsiveContainer>
 
       {/* MACD Chart */}
-      <p className="chart-label">MACD (12, 26, 9)</p>
+      <p className="chart-label">
+        MACD (12, 26, 9)
+        {lastRow.macd != null && (
+          <span className="macd-values">
+            <span style={{ color: '#f59e0b' }}>MACD {fmt(lastRow.macd)}</span>
+            <span style={{ color: '#ef4444' }}>Signal {fmt(lastRow.signal)}</span>
+          </span>
+        )}
+      </p>
       <ResponsiveContainer width="100%" height={140}>
         <ComposedChart data={displayData} syncId={code} margin={{ left: 10, right: 10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -132,6 +145,18 @@ export default function FundChart({ code, name, data, isDividend }) {
             strokeWidth={1.5}
             strokeDasharray="4 2"
           />
+          {crossoverDots.map((d) => (
+            <ReferenceDot
+              key={d.date}
+              x={d.date}
+              y={d.macd}
+              r={5}
+              fill="#a78bfa"
+              stroke="#fff"
+              strokeWidth={1}
+              label={{ value: '▲', position: 'top', fontSize: 10, fill: '#a78bfa' }}
+            />
+          ))}
           <Legend
             formatter={(v) => ({ macd: 'MACD', signal: 'Signal' }[v] ?? v)}
             payload={[
