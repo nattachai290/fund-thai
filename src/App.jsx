@@ -92,21 +92,24 @@ export default function App() {
     setErrorNav((p) => ({ ...p, [fund.code]: null }));
     try {
       let projId = fund.projId;
-      if (!projId) {
+      let classFundName = fund.classFundName;
+      // lookup ใหม่ถ้า: ยังไม่มี projId หรือ classFundName ยังเป็นค่าที่ user กรอก (ไม่ใช่จาก API)
+      if (!projId || classFundName === fund.code) {
         const result = await lookupProjId(fund);
-        projId = result.projId;
+        projId = result.projId ?? projId;
         if (!projId) throw new Error('ไม่พบ proj_id — ตรวจสอบ Project Info / Company Info');
+        classFundName = result.classFundName ?? classFundName;
         setFunds((prev) => {
           const updated = prev.map((f) =>
             f.code === fund.code
-              ? { ...f, projId, classFundName: result.classFundName ?? f.classFundName, isDividend: result.isDividend }
+              ? { ...f, projId, classFundName, isDividend: result.isDividend }
               : f
           );
           saveFundConfig(updated).catch(console.error);
           return updated;
         });
       }
-      const rows = await fetchNAV(projId, fund.classFundName);
+      const rows = await fetchNAV(projId, classFundName);
       if (!rows.length) throw new Error('ไม่มีข้อมูล NAV');
       const data = buildNavWithMacd(rows);
       try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
