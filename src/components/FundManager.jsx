@@ -45,9 +45,9 @@ function deriveProjectInfo(code) {
     const lastDash = beforeParen.lastIndexOf('-');
     if (lastDash > 0) return beforeParen.slice(0, lastDash);
   }
-  // suffix 2 ตัวอักษร เช่น -RD, -AR, -RA
-  const twoChar = code.match(/^(.+)-([A-Z]{2})$/);
-  if (twoChar) return twoChar[1];
+  // suffix 1-2 ตัวอักษร เช่น -D, -A, -RD, -AR, -RA
+  const suffix = code.match(/^(.+)-([A-Z]{1,2})$/);
+  if (suffix) return suffix[1];
   return code;
 }
 
@@ -81,10 +81,6 @@ export default function FundManager({ funds, onSave, onClose }) {
     setError('');
   }
 
-  function removeFund(code) {
-    onSave(funds.filter((f) => f.code !== code));
-  }
-
   return (
     <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="manager-panel">
@@ -104,7 +100,6 @@ export default function FundManager({ funds, onSave, onClose }) {
                 <strong>{f.code}</strong>
                 <span>{f.name}</span>
               </div>
-              <button className="btn-remove" onClick={() => removeFund(f.code)}>🗑</button>
             </div>
           ))}
         </div>

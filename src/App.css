@@ -752,6 +752,13 @@ body {
   color: #60a5fa;
   font-variant-numeric: tabular-nums;
 }
+.macd-values {
+  margin-left: 0.75rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  gap: 0.75rem;
+}
 .nav-date {
   font-size: 0.72rem;
   color: #94a3b8;
