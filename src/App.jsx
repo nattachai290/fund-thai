@@ -29,6 +29,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('MACD');
   const [showManager, setShowManager] = useState(false);
   const [savingDrive, setSavingDrive] = useState(false);
+  const [editingCode, setEditingCode] = useState(null);
+  const [editForm, setEditForm] = useState({ avgCost: '', unitBalance: '' });
 
   useEffect(() => {
     initGoogleAuth((token) => {
@@ -90,6 +92,28 @@ export default function App() {
     );
     setFunds(updated);
     saveFundConfig(updated).catch(console.error);
+  }
+
+  function openEditPortfolio(fund) {
+    setEditingCode(fund.code);
+    setEditForm({ avgCost: fund.avgCost ?? '', unitBalance: fund.unitBalance ?? '' });
+  }
+
+  function saveEditPortfolio() {
+    setFunds((prev) => {
+      const updated = prev.map((f) =>
+        f.code === editingCode
+          ? {
+              ...f,
+              avgCost: editForm.avgCost !== '' ? parseFloat(editForm.avgCost) : null,
+              unitBalance: editForm.unitBalance !== '' ? parseFloat(editForm.unitBalance) : null,
+            }
+          : f
+      );
+      saveFundConfig(updated).catch(console.error);
+      return updated;
+    });
+    setEditingCode(null);
   }
 
   async function handleSaveFunds(newFunds) {
@@ -240,12 +264,15 @@ export default function App() {
                       <th>มูลค่า</th>
                       <th>กำไร / ขาดทุน</th>
                       <th>%</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
                     {funds.map((fund) => {
                       const r = portfolioRows.find((x) => x.code === fund.code);
                       const loading = loadingNav[fund.code];
+                      const rows = navData[fund.code];
+                      const lastDate = rows?.[rows.length - 1]?.date;
                       return (
                         <tr key={fund.code}>
                           <td>
@@ -254,33 +281,23 @@ export default function App() {
                               <span>{fund.name}</span>
                             </div>
                           </td>
-                          <td>{loading ? '…' : fmt(r?.lastNav)}</td>
                           <td>
-                            <input
-                              className="portfolio-input"
-                              type="number"
-                              step="0.0001"
-                              value={fund.avgCost ?? ''}
-                              placeholder="—"
-                              onChange={(e) => handlePortfolioEdit(fund.code, 'avgCost', e.target.value)}
-                            />
+                            <div className="portfolio-nav-cell">
+                              <span>{loading ? '…' : fmt(r?.lastNav)}</span>
+                              {lastDate && <span className="nav-date">{lastDate}</span>}
+                            </div>
                           </td>
-                          <td>
-                            <input
-                              className="portfolio-input"
-                              type="number"
-                              step="0.0001"
-                              value={fund.unitBalance ?? ''}
-                              placeholder="—"
-                              onChange={(e) => handlePortfolioEdit(fund.code, 'unitBalance', e.target.value)}
-                            />
-                          </td>
+                          <td>{fund.avgCost != null ? fmt(fund.avgCost) : '—'}</td>
+                          <td>{fund.unitBalance != null ? fmt(fund.unitBalance) : '—'}</td>
                           <td>{r?.currentValue != null ? `฿${fmt(r.currentValue, 2)}` : '—'}</td>
                           <td className={r?.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
                             {r?.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmt(r.pnl, 2)}` : '—'}
                           </td>
                           <td className={r?.pnlPct != null ? (r.pnlPct >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
                             {r?.pnlPct != null ? `${r.pnlPct >= 0 ? '+' : ''}${fmt(r.pnlPct, 2)}%` : '—'}
+                          </td>
+                          <td>
+                            <button className="btn-edit-portfolio" onClick={() => openEditPortfolio(fund)}>✏️</button>
                           </td>
                         </tr>
                       );
@@ -291,6 +308,42 @@ export default function App() {
             </>
           )}
         </main>
+      )}
+
+      {editingCode && (
+        <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && setEditingCode(null)}>
+          <div className="manager-panel edit-portfolio-panel">
+            <div className="manager-header">
+              <h2>แก้ไข {editingCode}</h2>
+              <button className="btn-close" onClick={() => setEditingCode(null)}>✕</button>
+            </div>
+            <div className="add-fund-form">
+              <label className="form-label">
+                ราคาเฉลี่ย (Avg Cost)
+                <input
+                  className="form-input"
+                  type="number"
+                  step="0.0001"
+                  value={editForm.avgCost}
+                  placeholder="—"
+                  onChange={(e) => setEditForm((p) => ({ ...p, avgCost: e.target.value }))}
+                />
+              </label>
+              <label className="form-label">
+                จำนวน Unit
+                <input
+                  className="form-input"
+                  type="number"
+                  step="0.0001"
+                  value={editForm.unitBalance}
+                  placeholder="—"
+                  onChange={(e) => setEditForm((p) => ({ ...p, unitBalance: e.target.value }))}
+                />
+              </label>
+              <button className="btn btn-add" onClick={saveEditPortfolio}>บันทึก</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showManager && (

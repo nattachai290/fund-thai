@@ -336,6 +336,18 @@ body {
   flex-shrink: 0;
 }
 .btn-remove:hover { color: #f87171; }
+.btn-edit-portfolio {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+}
+.btn-edit-portfolio:hover { color: #93c5fd; }
+.portfolio-nav-cell { display: flex; flex-direction: column; gap: 0.1rem; }
+.edit-portfolio-panel { max-width: 360px; }
 
 .add-fund-form {
   background: #1e293b;
@@ -727,6 +739,11 @@ body {
   font-size: 0.9rem;
   font-weight: 600;
   color: #60a5fa;
+  font-variant-numeric: tabular-nums;
+}
+.nav-date {
+  font-size: 0.72rem;
+  color: #94a3b8;
   font-variant-numeric: tabular-nums;
 }
 .badge {
