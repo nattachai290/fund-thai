@@ -66,7 +66,7 @@ export default function App() {
           return updated;
         });
       }
-      const rows = await fetchNAV(projId);
+      const rows = await fetchNAV(projId, fund.classFundName);
       if (!rows.length) throw new Error('ไม่มีข้อมูล NAV');
       setNavData((p) => ({ ...p, [fund.code]: buildNavWithMacd(rows) }));
     } catch (e) {
