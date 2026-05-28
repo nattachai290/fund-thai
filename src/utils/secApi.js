@@ -1,4 +1,9 @@
-import { SEC_API_KEY, SEC_BASE } from '../config/google';
+import { SEC_API_KEY } from '../config/google';
+
+// dev: Vite proxy /sec-api → https://api.sec.or.th
+// prod (Vercel): vercel.json rewrite /sec-api → https://api.sec.or.th
+// prod (อื่นๆ): ใช้ VITE_SEC_PROXY ถ้า set ไว้ (เช่น Cloudflare Worker URL)
+const SEC_BASE = import.meta.env.VITE_SEC_PROXY ?? '/sec-api';
 
 function secHeaders() {
   return {

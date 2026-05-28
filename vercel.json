@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/sec-api/:path*",
+      "destination": "https://api.sec.or.th/:path*"
+    }
+  ]
+}
