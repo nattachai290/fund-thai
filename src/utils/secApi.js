@@ -70,9 +70,12 @@ export async function fetchNAV(projId, classFundName, days = 1000) {
 
     try {
       const data = await secFetch(`${SEC_ORIGIN}/v2/fund/daily-info/nav?${params}`);
-      for (const row of data.items ?? []) {
-        // filter เฉพาะ class ที่ต้องการ — ป้องกัน proj_id เดียวกันมีหลาย class
-        if (classFundName && row.fund_class_name !== classFundName) continue;
+      const items = data.items ?? [];
+      // ถ้า classFundName ไม่ตรงกับ class ใดเลยใน chunk → ไม่ filter (เอาทั้งหมด)
+      const classes = new Set(items.map((r) => r.fund_class_name));
+      const useFilter = classFundName && classes.has(classFundName);
+      for (const row of items) {
+        if (useFilter && row.fund_class_name !== classFundName) continue;
         const nav = parseFloat(row.last_val ?? 0);
         if (nav > 0 && row.nav_date) navMap[row.nav_date] = nav;
       }
