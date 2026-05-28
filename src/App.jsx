@@ -21,6 +21,7 @@ function fmt(v, decimals = 4) {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false); // false = กำลัง init
   const [funds, setFunds] = useState([]);
   const [navData, setNavData] = useState({});
   const [loadingNav, setLoadingNav] = useState({});
@@ -36,8 +37,12 @@ export default function App() {
       })
         .then((r) => r.json())
         .then((info) => setUser({ name: info.name, email: info.email }))
-        .catch(() => setUser({ name: '', email: '' }));
+        .catch(() => setUser({ name: '', email: '' }))
+        .finally(() => setAuthReady(true));
     });
+    // ถ้าไม่มี session เลย — หลัง 3 วิก็ถือว่า ready (แสดง login)
+    const t = setTimeout(() => setAuthReady(true), 3000);
+    return () => clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -96,14 +101,17 @@ export default function App() {
     });
   }
 
-  // ─── Login screen ───────────────────────────────────────────────────────────
+  // ─── Auth loading / Login screen ────────────────────────────────────────────
   if (!user) {
     return (
       <div className="login-screen">
         <div className="login-box">
           <h1>📈 Thai Fund MACD</h1>
           <p>ติดตาม MACD กองทุนรวมไทย — เข้าสู่ระบบเพื่อจัดการกองทุนของคุณ</p>
-          <AuthButton user={null} onSignOut={() => {}} />
+          {authReady
+            ? <AuthButton user={null} onSignOut={() => {}} />
+            : <p className="auth-loading">กำลังตรวจสอบ session…</p>
+          }
         </div>
       </div>
     );
