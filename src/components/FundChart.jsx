@@ -42,7 +42,10 @@ function MacdTooltip({ active, payload, label }) {
 
 export default function FundChart({ code, name, data }) {
   const fund = { name };
-  const displayData = data.slice(-120);
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+  const cutoff = sixMonthsAgo.toISOString().slice(0, 10);
+  const displayData = data.filter((r) => r.date >= cutoff);
 
   const lastRow = displayData[displayData.length - 1] ?? {};
   const crossover =
