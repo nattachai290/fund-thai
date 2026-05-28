@@ -1,53 +1,83 @@
 import { useState } from 'react';
 
-const EMPTY_FORM = {
-  code: '',
-  name: '',
-  projectInfo: '',
-  companyInfo: '',
-  classFundName: '',
-  avgCost: '',
-  unitBalance: '',
-};
+// ธนาคาร/บลจ. ที่รองรับ — ค่าคือ company_info ที่ใช้ใน SEC API
+const COMPANIES = [
+  { label: '— ไม่ระบุ —',                    value: '' },
+  { label: 'กสิกรไทย (KASIKORN)',             value: 'KASIKORN' },
+  { label: 'กรุงไทย (KRUNG THAI)',            value: 'KRUNG THAI' },
+  { label: 'กรุงศรี (KRUNGSRI)',              value: 'KRUNGSRI' },
+  { label: 'ไทยพาณิชย์ (SCB)',               value: 'SCB' },
+  { label: 'บัวหลวง (BBL)',                   value: 'BBL' },
+  { label: 'ทหารไทย (TMB)',                   value: 'TMB' },
+  { label: 'ธนชาต (THANACHART)',              value: 'THANACHART' },
+  { label: 'เกียรตินาคินภัทร (KIATNAKIN PHATRA)', value: 'KIATNAKIN PHATRA' },
+  { label: 'ทิสโก้ (TISCO)',                  value: 'TISCO' },
+  { label: 'วรรณ (ONE)',                      value: 'ONE' },
+  { label: 'แลนด์ แอนด์ เฮ้าส์ (LAND AND HOUSES)', value: 'LAND AND HOUSES' },
+  { label: 'อีสท์สปริง (EASTSPRING)',         value: 'EASTSPRING' },
+  { label: 'อเบอร์ดีน (ABERDEEN)',            value: 'ABERDEEN' },
+  { label: 'พรินซิเพิล (PRINCIPAL ASSET)',    value: 'PRINCIPAL ASSET' },
+  { label: 'แอสเซท พลัส (ASSET PLUS)',        value: 'ASSET PLUS' },
+  { label: 'เอ็มเอฟซี (MFC)',                 value: 'MFC' },
+  { label: 'บางกอกแคปปิตอล (BANGKOK CAPITAL)', value: 'BANGKOK CAPITAL' },
+  { label: 'ยูโอบี (UOB)',                    value: 'UOB' },
+  { label: 'ดาโอ (DAOL)',                     value: 'DAOL' },
+  { label: 'เอไอเอ (AIA)',                    value: 'AIA' },
+  { label: 'ฟิลลิป (PHILLIP)',                value: 'PHILLIP' },
+  { label: 'ฟินันซ่า (FINANSA)',              value: 'FINANSA' },
+  { label: 'ทาลิส (TALIS)',                   value: 'TALIS' },
+  { label: 'ซาวาคามิ (SAWAKAMI)',             value: 'SAWAKAMI' },
+  { label: 'เอ็กซ์สปริง (XSPRING)',           value: 'XSPRING' },
+  { label: 'เรนเนสซานซ์ (RENAISSANCE)',       value: 'RENAISSANCE' },
+  { label: 'เมอร์ชั่น พาร์ทเนอร์ (MERCHANT PARTNERS)', value: 'MERCHANT PARTNERS' },
+  { label: 'เฟิร์ส พลัส (FIRST PLUS)',        value: 'FIRST PLUS' },
+  { label: 'ไทยจัดการทรัพย์ (THAI ASSET)',    value: 'THAI ASSET' },
+  { label: 'สยาม ไนท์ (SIAM KNIGHT FUND)',    value: 'SIAM KNIGHT FUND' },
+];
+
+// auto-derive projectInfo จาก fund code
+// ตัด class suffix เช่น -A(D), -B(D), -RD, -AR ออก
+function deriveProjectInfo(code) {
+  // มี parentheses: K-USXNDQ-A(D) → K-USXNDQ
+  const parenIdx = code.indexOf('(');
+  if (parenIdx > 0) {
+    const beforeParen = code.slice(0, parenIdx);
+    const lastDash = beforeParen.lastIndexOf('-');
+    if (lastDash > 0) return beforeParen.slice(0, lastDash);
+  }
+  // suffix 2 ตัวอักษร เช่น -RD, -AR, -RA
+  const twoChar = code.match(/^(.+)-([A-Z]{2})$/);
+  if (twoChar) return twoChar[1];
+  return code;
+}
+
+const EMPTY = { code: '', name: '', companyInfo: '' };
 
 export default function FundManager({ funds, onSave, onClose }) {
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
 
-  function set(field, value) {
+  function setField(field, value) {
     setForm((p) => ({ ...p, [field]: value }));
-    // auto-fill classFundName ถ้ายังไม่ได้กรอก
-    if (field === 'code') {
-      setForm((p) => ({
-        ...p,
-        code: value,
-        classFundName: p.classFundName || value,
-      }));
-    }
   }
 
   function addFund() {
-    const code = form.code.trim();
-    const projectInfo = form.projectInfo.trim();
-    if (!code || !projectInfo) {
-      setError('กรุณากรอก Fund Code และ Project Info');
-      return;
-    }
-    if (funds.find((f) => f.code === code)) {
-      setError('มี fund นี้อยู่แล้ว');
-      return;
-    }
+    const code = form.code.trim().toUpperCase();
+    if (!code) { setError('กรุณากรอก Fund Code'); return; }
+    if (funds.find((f) => f.code === code)) { setError('มี fund นี้อยู่แล้ว'); return; }
+
+    const projectInfo = deriveProjectInfo(code);
     const newFund = {
       code,
       name: form.name.trim() || code,
       projectInfo,
-      companyInfo: form.companyInfo.trim(),
-      classFundName: form.classFundName.trim() || code,
-      avgCost: form.avgCost ? parseFloat(form.avgCost) : null,
-      unitBalance: form.unitBalance ? parseFloat(form.unitBalance) : null,
+      companyInfo: form.companyInfo,
+      classFundName: code,
+      avgCost: null,
+      unitBalance: null,
     };
     onSave([...funds, newFund]);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY);
     setError('');
   }
 
@@ -58,7 +88,7 @@ export default function FundManager({ funds, onSave, onClose }) {
   function updatePortfolio(code, field, value) {
     onSave(
       funds.map((f) =>
-        f.code === code ? { ...f, [field]: value ? parseFloat(value) : null } : f
+        f.code === code ? { ...f, [field]: value !== '' ? parseFloat(value) : null } : f
       )
     );
   }
@@ -73,7 +103,9 @@ export default function FundManager({ funds, onSave, onClose }) {
 
         {/* รายการกองทุน */}
         <div className="fund-list">
-          {funds.length === 0 && <p className="empty-hint">ยังไม่มีกองทุน — เพิ่มด้านล่างได้เลย</p>}
+          {funds.length === 0 && (
+            <p className="empty-hint">ยังไม่มีกองทุน — เพิ่มด้านล่างได้เลย</p>
+          )}
           {funds.map((f) => (
             <div key={f.code} className="fund-row">
               <div className="fund-row-info">
@@ -111,28 +143,42 @@ export default function FundManager({ funds, onSave, onClose }) {
         <div className="add-fund-form">
           <h3>เพิ่มกองทุน</h3>
           {error && <p className="form-error">{error}</p>}
-          <div className="form-grid">
-            <label>
-              Fund Code *
-              <input value={form.code} onChange={(e) => set('code', e.target.value)} placeholder="เช่น K-USXNDQ-A(D)" />
-            </label>
-            <label>
-              ชื่อกองทุน
-              <input value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="ชื่อที่แสดงผล" />
-            </label>
-            <label>
-              Project Info * <span className="hint">(proj_abbr_name)</span>
-              <input value={form.projectInfo} onChange={(e) => set('projectInfo', e.target.value)} placeholder="เช่น K-USXNDQ" />
-            </label>
-            <label>
-              Company Info <span className="hint">(ชื่อธนาคาร/บลจ.)</span>
-              <input value={form.companyInfo} onChange={(e) => set('companyInfo', e.target.value)} placeholder="เช่น KASIKORN" />
-            </label>
-            <label>
-              Class Fund Name <span className="hint">(fund_class_name)</span>
-              <input value={form.classFundName} onChange={(e) => set('classFundName', e.target.value)} placeholder="ค่าเริ่มต้น = Fund Code" />
-            </label>
-          </div>
+
+          <label className="form-label">
+            Fund Code
+            <input
+              className="form-input"
+              value={form.code}
+              onChange={(e) => setField('code', e.target.value)}
+              placeholder="เช่น BGOLD, K-USXNDQ-A(D)"
+              onKeyDown={(e) => e.key === 'Enter' && addFund()}
+            />
+          </label>
+
+          <label className="form-label">
+            ชื่อกองทุน
+            <input
+              className="form-input"
+              value={form.name}
+              onChange={(e) => setField('name', e.target.value)}
+              placeholder="ชื่อที่แสดงในกราฟ"
+              onKeyDown={(e) => e.key === 'Enter' && addFund()}
+            />
+          </label>
+
+          <label className="form-label">
+            ธนาคาร / บลจ.
+            <select
+              className="form-input form-select"
+              value={form.companyInfo}
+              onChange={(e) => setField('companyInfo', e.target.value)}
+            >
+              {COMPANIES.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </label>
+
           <button className="btn btn-add" onClick={addFund}>+ เพิ่มกองทุน</button>
         </div>
       </div>
