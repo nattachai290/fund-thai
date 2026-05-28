@@ -85,14 +85,6 @@ export default function FundManager({ funds, onSave, onClose }) {
     onSave(funds.filter((f) => f.code !== code));
   }
 
-  function updatePortfolio(code, field, value) {
-    onSave(
-      funds.map((f) =>
-        f.code === code ? { ...f, [field]: value !== '' ? parseFloat(value) : null } : f
-      )
-    );
-  }
-
   return (
     <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="manager-panel">
@@ -111,28 +103,6 @@ export default function FundManager({ funds, onSave, onClose }) {
               <div className="fund-row-info">
                 <strong>{f.code}</strong>
                 <span>{f.name}</span>
-              </div>
-              <div className="fund-row-portfolio">
-                <label>
-                  Avg cost
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={f.avgCost ?? ''}
-                    onChange={(e) => updatePortfolio(f.code, 'avgCost', e.target.value)}
-                    placeholder="ราคาเฉลี่ย"
-                  />
-                </label>
-                <label>
-                  Units
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={f.unitBalance ?? ''}
-                    onChange={(e) => updatePortfolio(f.code, 'unitBalance', e.target.value)}
-                    placeholder="จำนวน unit"
-                  />
-                </label>
               </div>
               <button className="btn-remove" onClick={() => removeFund(f.code)}>🗑</button>
             </div>

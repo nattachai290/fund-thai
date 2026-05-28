@@ -84,6 +84,14 @@ export default function App() {
     });
   }, [funds]);
 
+  function handlePortfolioEdit(code, field, value) {
+    const updated = funds.map((f) =>
+      f.code === code ? { ...f, [field]: value !== '' ? parseFloat(value) : null } : f
+    );
+    setFunds(updated);
+    saveFundConfig(updated).catch(console.error);
+  }
+
   async function handleSaveFunds(newFunds) {
     setFunds(newFunds);
     setSavingDrive(true);
@@ -247,8 +255,26 @@ export default function App() {
                             </div>
                           </td>
                           <td>{loading ? '…' : fmt(r?.lastNav)}</td>
-                          <td>{fmt(fund.avgCost)}</td>
-                          <td>{fund.unitBalance ?? '—'}</td>
+                          <td>
+                            <input
+                              className="portfolio-input"
+                              type="number"
+                              step="0.0001"
+                              value={fund.avgCost ?? ''}
+                              placeholder="—"
+                              onChange={(e) => handlePortfolioEdit(fund.code, 'avgCost', e.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              className="portfolio-input"
+                              type="number"
+                              step="0.0001"
+                              value={fund.unitBalance ?? ''}
+                              placeholder="—"
+                              onChange={(e) => handlePortfolioEdit(fund.code, 'unitBalance', e.target.value)}
+                            />
+                          </td>
                           <td>{r?.currentValue != null ? `฿${fmt(r.currentValue, 2)}` : '—'}</td>
                           <td className={r?.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
                             {r?.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmt(r.pnl, 2)}` : '—'}

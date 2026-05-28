@@ -221,6 +221,21 @@ body {
 .pnl-pos { color: #34d399 !important; }
 .pnl-neg { color: #f87171 !important; }
 
+.portfolio-input {
+  width: 90px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.portfolio-input:focus { border-color: #3b82f6; }
+.portfolio-input::placeholder { color: #475569; }
+
 /* Fund Manager Modal */
 .manager-overlay {
   position: fixed;
