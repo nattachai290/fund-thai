@@ -66,12 +66,13 @@ function deriveCompanyInfo(code) {
 // auto-derive projectInfo จาก fund code
 // ตัด class suffix เช่น -A(D), -B(D), -RD, -AR ออก
 function deriveProjectInfo(code) {
-  // มี parentheses: K-USXNDQ-A(D) → K-USXNDQ
+  // มี parentheses: K-USXNDQ-A(D) → K-USXNDQ, SCBSEMI(A) → SCBSEMI
   const parenIdx = code.indexOf('(');
   if (parenIdx > 0) {
     const beforeParen = code.slice(0, parenIdx);
     const lastDash = beforeParen.lastIndexOf('-');
     if (lastDash > 0) return beforeParen.slice(0, lastDash);
+    return beforeParen; // ไม่มี dash เช่น SCBSEMI(A)
   }
   // suffix 1-2 ตัวอักษร เช่น -D, -A, -RD, -AR, -RA
   const suffix = code.match(/^(.+)-([A-Z]{1,2})$/);
