@@ -81,10 +81,6 @@ export default function FundManager({ funds, onSave, onClose }) {
     setError('');
   }
 
-  function removeFund(code) {
-    onSave(funds.filter((f) => f.code !== code));
-  }
-
   return (
     <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="manager-panel">
@@ -104,7 +100,6 @@ export default function FundManager({ funds, onSave, onClose }) {
                 <strong>{f.code}</strong>
                 <span>{f.name}</span>
               </div>
-              <button className="btn-remove" onClick={() => removeFund(f.code)}>🗑</button>
             </div>
           ))}
         </div>

@@ -159,6 +159,13 @@ export default function App() {
     setEditingCode(null);
   }
 
+  function removeFund(code) {
+    const updated = funds.filter((f) => f.code !== code);
+    setFunds(updated);
+    setNavData((p) => { const n = { ...p }; delete n[code]; return n; });
+    saveFundConfig(updated).catch(console.error);
+  }
+
   async function handleSaveFunds(newFunds) {
     setFunds(newFunds);
     setSavingDrive(true);
@@ -343,6 +350,7 @@ export default function App() {
                           </td>
                           <td>
                             <button className="btn-edit-portfolio" onClick={() => openEditPortfolio(fund)}>✏️</button>
+                            <button className="btn-remove" onClick={() => removeFund(fund.code)}>🗑</button>
                           </td>
                         </tr>
                       );
