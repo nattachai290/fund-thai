@@ -56,6 +56,9 @@ export default function App() {
   const [savingDrive, setSavingDrive] = useState(false);
   const [editingCode, setEditingCode] = useState(null);
   const [editForm, setEditForm] = useState({ avgCost: '', unitBalance: '' });
+  const [showExport, setShowExport] = useState(false);
+  const [exportOpts, setExportOpts] = useState({ nav: true, unit: true });
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     initGoogleAuth((token) => {
@@ -170,6 +173,24 @@ export default function App() {
     saveFundConfig(updated).catch(console.error);
   }
 
+  function buildExportText() {
+    return funds.map((f) => {
+      const rows = navData[f.code];
+      const lastNav = rows?.[rows.length - 1]?.nav;
+      let line = f.code;
+      if (exportOpts.nav && lastNav != null) line += ` nav=${fmt(lastNav)}`;
+      if (exportOpts.unit && f.unitBalance != null) line += ` unit=${fmt(f.unitBalance)}`;
+      return line;
+    }).join('\n');
+  }
+
+  function handleCopy() {
+    navigator.clipboard.writeText(buildExportText()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   async function handleSaveFunds(newFunds) {
     setFunds(newFunds);
     setSavingDrive(true);
@@ -218,6 +239,18 @@ export default function App() {
 
   const totalValue = portfolioRows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
   const totalCost = funds.reduce((s, f) => s + (f.avgCost ?? 0) * (f.unitBalance ?? 0), 0);
+
+  // group by companyInfo
+  const groups = [];
+  const seen = new Set();
+  for (const f of funds) {
+    const key = f.companyInfo || '';
+    if (!seen.has(key)) { seen.add(key); groups.push(key); }
+  }
+  const groupedFunds = groups.map((key) => ({
+    company: key,
+    funds: portfolioRows.filter((r) => (r.companyInfo || '') === key),
+  }));
   const totalPnl = totalValue - totalCost;
 
   return (
@@ -293,6 +326,7 @@ export default function App() {
             <div className="empty-state"><p>ยังไม่มีกองทุน — กด ⚙️ เพื่อเพิ่ม</p></div>
           ) : (
             <>
+              {/* Summary */}
               <div className="portfolio-summary">
                 <div className="summary-card">
                   <span>มูลค่ารวม</span>
@@ -306,65 +340,90 @@ export default function App() {
                   <span>กำไร / ขาดทุน</span>
                   <strong>{totalPnl >= 0 ? '+' : ''}฿{fmtMoney(totalPnl)}</strong>
                 </div>
+                <button className="btn-export" onClick={() => setShowExport(true)}>⬇ Export</button>
               </div>
 
-              <div className="portfolio-table-wrap">
-                <table className="portfolio-table">
-                  <thead>
-                    <tr>
-                      <th>กองทุน</th>
-                      <th>NAV ล่าสุด</th>
-                      <th>ราคาเฉลี่ย</th>
-                      <th>จำนวน Unit</th>
-                      <th>มูลค่า</th>
-                      <th>กำไร / ขาดทุน</th>
-                      <th>%</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {funds.map((fund) => {
-                      const r = portfolioRows.find((x) => x.code === fund.code);
-                      const loading = loadingNav[fund.code];
-                      const rows = navData[fund.code];
+              {/* Grouped sections */}
+              {groupedFunds.map(({ company, funds: gFunds }) => (
+                <div key={company} className="port-group">
+                  {company && <h3 className="port-group-title">{company}</h3>}
+                  <div className="port-cards">
+                    {gFunds.map((r) => {
+                      const loading = loadingNav[r.code];
+                      const rows = navData[r.code];
                       const lastDate = rows?.[rows.length - 1]?.date;
                       return (
-                        <tr key={fund.code}>
-                          <td>
-                            <div className="portfolio-fund-name">
-                              <strong>{fund.code}</strong>
-                              <span>{fund.name}</span>
-                              {fund.isDividend && <span className="badge-dividend">ปันผล</span>}
+                        <div key={r.code} className="port-card">
+                          <div className="port-card-top">
+                            <div className="port-card-identity">
+                              <span className="port-code">{r.code}</span>
+                              {r.isDividend && <span className="badge-div">ปันผล</span>}
                             </div>
-                          </td>
-                          <td>
-                            <div className="portfolio-nav-cell">
-                              <span>{loading ? '…' : fmt(r?.lastNav)}</span>
-                              {lastDate && <span className="nav-date">{lastDate}</span>}
+                            <div className="port-card-actions">
+                              <button className="btn-icon" onClick={() => openEditPortfolio(r)} title="แก้ไข">✏️</button>
+                              <button className="btn-icon btn-icon-del" onClick={() => removeFund(r.code)} title="ลบ">🗑</button>
                             </div>
-                          </td>
-                          <td>{fund.avgCost != null ? fmt(fund.avgCost) : '—'}</td>
-                          <td>{fund.unitBalance != null ? fmt(fund.unitBalance) : '—'}</td>
-                          <td>{r?.currentValue != null ? `฿${fmtMoney(r.currentValue)}` : '—'}</td>
-                          <td className={r?.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
-                            {r?.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmtMoney(r.pnl)}` : '—'}
-                          </td>
-                          <td className={r?.pnlPct != null ? (r.pnlPct >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}>
-                            {r?.pnlPct != null ? `${r.pnlPct >= 0 ? '+' : ''}${fmt(r.pnlPct, 2)}%` : '—'}
-                          </td>
-                          <td>
-                            <button className="btn-edit-portfolio" onClick={() => openEditPortfolio(fund)}>✏️</button>
-                            <button className="btn-remove" onClick={() => removeFund(fund.code)}>🗑</button>
-                          </td>
-                        </tr>
+                          </div>
+                          <p className="port-name">{r.name}</p>
+                          <div className="port-card-nav">
+                            <span className="port-nav-val">{loading ? '…' : fmt(r.lastNav)}</span>
+                            {lastDate && <span className="nav-date">{lastDate}</span>}
+                          </div>
+                          <div className="port-card-stats">
+                            <div className="port-stat">
+                              <span>ต้นทุน</span>
+                              <span>{r.avgCost != null ? fmt(r.avgCost) : '—'}</span>
+                            </div>
+                            <div className="port-stat">
+                              <span>Units</span>
+                              <span>{r.unitBalance != null ? fmt(r.unitBalance) : '—'}</span>
+                            </div>
+                            <div className="port-stat">
+                              <span>มูลค่า</span>
+                              <span>{r.currentValue != null ? `฿${fmtMoney(r.currentValue)}` : '—'}</span>
+                            </div>
+                            <div className={`port-stat ${r.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}`}>
+                              <span>กำไร/ขาดทุน</span>
+                              <span>
+                                {r.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmtMoney(r.pnl)}` : '—'}
+                                {r.pnlPct != null && <em>{r.pnlPct >= 0 ? '+' : ''}{fmt(r.pnlPct, 2)}%</em>}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                </div>
+              ))}
             </>
           )}
         </main>
+      )}
+
+      {showExport && (
+        <div className="manager-overlay" onClick={(e) => e.target === e.currentTarget && setShowExport(false)}>
+          <div className="manager-panel edit-portfolio-panel">
+            <div className="manager-header">
+              <h2>Export ข้อมูล</h2>
+              <button className="btn-close" onClick={() => setShowExport(false)}>✕</button>
+            </div>
+            <div className="add-fund-form">
+              <label className="export-checkbox">
+                <input type="checkbox" checked={exportOpts.nav} onChange={(e) => setExportOpts((p) => ({ ...p, nav: e.target.checked }))} />
+                รวม NAV ล่าสุด
+              </label>
+              <label className="export-checkbox">
+                <input type="checkbox" checked={exportOpts.unit} onChange={(e) => setExportOpts((p) => ({ ...p, unit: e.target.checked }))} />
+                รวม Unit Balance
+              </label>
+              <pre className="export-preview">{buildExportText()}</pre>
+              <button className="btn btn-add" onClick={handleCopy}>
+                {copied ? '✓ Copied!' : '⎘ Copy'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editingCode && (
