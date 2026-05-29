@@ -37,8 +37,8 @@ body {
   gap: 1rem;
 }
 .login-box h1 { font-size: 2rem; color: #f1f5f9; }
-.login-box p { font-size: 0.88rem; color: #94a3b8; line-height: 1.6; }
-.auth-loading { font-size: 0.82rem; color: #475569; }
+.login-box p { font-size: 0.88rem; color: #e2e8f0; line-height: 1.6; }
+.auth-loading { font-size: 0.82rem; color: #e2e8f0; }
 
 /* Header */
 .app-header {
@@ -79,7 +79,7 @@ body {
 }
 .user-name {
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: #e2e8f0;
 }
 .btn-logout {
   font-size: 0.78rem;
@@ -87,7 +87,7 @@ body {
   border-radius: 6px;
   border: 1px solid #334155;
   background: transparent;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
 }
 .btn-logout:hover { background: #334155; color: #f1f5f9; }
@@ -106,12 +106,12 @@ body {
   border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
-  color: #64748b;
+  color: #e2e8f0;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.15s;
 }
-.tab:hover { color: #94a3b8; }
+.tab:hover { color: #e2e8f0; }
 .tab-active {
   background: #1e293b;
   border-color: #334155;
@@ -125,7 +125,7 @@ body {
   border-radius: 8px;
   border: 1px solid #334155;
   background: #1e293b;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.15s;
@@ -139,7 +139,7 @@ body {
   border-radius: 6px;
   border: 1px solid #334155;
   background: #0f172a;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
   margin-top: 0.25rem;
 }
@@ -150,7 +150,7 @@ body {
   grid-column: 1 / -1;
   text-align: center;
   padding: 4rem;
-  color: #475569;
+  color: #e2e8f0;
   font-size: 0.9rem;
 }
 
@@ -175,7 +175,7 @@ body {
   gap: 0.2rem;
   min-width: 140px;
 }
-.summary-card span { font-size: 0.72rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+.summary-card span { font-size: 0.72rem; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.04em; }
 .summary-card strong { font-size: 1.1rem; color: #f1f5f9; font-variant-numeric: tabular-nums; }
 .summary-card.pnl-pos strong { color: #34d399; }
 .summary-card.pnl-neg strong { color: #f87171; }
@@ -183,7 +183,7 @@ body {
   margin-left: auto;
   background: #1e293b;
   border: 1px solid #334155;
-  color: #94a3b8;
+  color: #e2e8f0;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-size: 0.82rem;
@@ -197,7 +197,7 @@ body {
 .port-group-title {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #64748b;
+  color: #e2e8f0;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
@@ -221,7 +221,7 @@ body {
   gap: 0.5rem;
   transition: border-color 0.15s;
 }
-.port-card:hover { border-color: #475569; }
+.port-card:hover { border-color: #e2e8f0; }
 .port-card-top {
   display: flex;
   align-items: center;
@@ -247,12 +247,12 @@ body {
   cursor: pointer;
   padding: 0.2rem 0.3rem;
   border-radius: 4px;
-  opacity: 0.5;
+  opacity: 0.85;
   transition: opacity 0.15s;
 }
 .btn-icon:hover { opacity: 1; }
 .btn-icon-del:hover { color: #f87171; }
-.port-name { font-size: 0.72rem; color: #64748b; line-height: 1.35; }
+.port-name { font-size: 0.72rem; color: #e2e8f0; line-height: 1.35; }
 .port-card-nav { display: flex; align-items: baseline; gap: 0.5rem; }
 .port-nav-val { font-size: 1.05rem; font-weight: 600; color: #60a5fa; font-variant-numeric: tabular-nums; }
 .port-card-stats {
@@ -264,8 +264,8 @@ body {
   border-top: 1px solid #334155;
 }
 .port-stat { display: flex; flex-direction: column; gap: 0.1rem; }
-.port-stat span:first-child { font-size: 0.65rem; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; }
-.port-stat span:last-child { font-size: 0.82rem; color: #cbd5e1; font-variant-numeric: tabular-nums; }
+.port-stat span:first-child { font-size: 0.65rem; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.04em; }
+.port-stat span:last-child { font-size: 0.82rem; color: #f1f5f9; font-variant-numeric: tabular-nums; }
 .port-stat em { font-style: normal; font-size: 0.72rem; margin-left: 0.3rem; opacity: 0.8; }
 
 /* ── Export modal ── */
@@ -274,7 +274,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   font-size: 0.88rem;
-  color: #cbd5e1;
+  color: #f1f5f9;
   cursor: pointer;
   margin-bottom: 0.5rem;
 }
@@ -284,7 +284,7 @@ body {
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   font-family: monospace;
   white-space: pre;
   overflow-x: auto;
@@ -308,7 +308,7 @@ body {
   outline: none;
 }
 .portfolio-input:focus { border-color: #3b82f6; }
-.portfolio-input::placeholder { color: #475569; }
+.portfolio-input::placeholder { color: #e2e8f0; }
 
 /* Fund Manager Modal */
 .manager-overlay {
@@ -341,7 +341,7 @@ body {
 .btn-close {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #e2e8f0;
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0.25rem 0.5rem;
@@ -354,7 +354,7 @@ body {
   flex-direction: column;
   gap: 0.5rem;
 }
-.empty-hint { font-size: 0.82rem; color: #475569; }
+.empty-hint { font-size: 0.82rem; color: #e2e8f0; }
 
 .fund-row {
   background: #1e293b;
@@ -372,7 +372,7 @@ body {
   min-width: 120px;
 }
 .fund-row-info strong { font-size: 0.88rem; color: #f1f5f9; }
-.fund-row-info span { font-size: 0.75rem; color: #64748b; }
+.fund-row-info span { font-size: 0.75rem; color: #e2e8f0; }
 
 .fund-row-portfolio {
   display: flex;
@@ -384,7 +384,7 @@ body {
   flex-direction: column;
   gap: 0.2rem;
   font-size: 0.72rem;
-  color: #64748b;
+  color: #e2e8f0;
   flex: 1;
 }
 .fund-row-portfolio input {
@@ -402,7 +402,7 @@ body {
 .btn-remove {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #e2e8f0;
   font-size: 1rem;
   cursor: pointer;
   padding: 0.3rem;
@@ -424,7 +424,7 @@ body {
 .btn-edit-portfolio {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #e2e8f0;
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0.3rem 0.5rem;
@@ -443,8 +443,8 @@ body {
   flex-direction: column;
   gap: 0.75rem;
 }
-.add-fund-form h3 { font-size: 0.9rem; color: #94a3b8; }
-.search-hint { font-size: 0.8rem; color: #64748b; padding: 0.25rem 0; }
+.add-fund-form h3 { font-size: 0.9rem; color: #e2e8f0; }
+.search-hint { font-size: 0.8rem; color: #e2e8f0; padding: 0.25rem 0; }
 .search-results {
   display: flex;
   flex-direction: column;
@@ -467,14 +467,14 @@ body {
 }
 .search-result-item:hover { border-color: #3b82f6; background: #1e3a5f; }
 .result-code { font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
-.result-name { font-size: 0.78rem; color: #94a3b8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-name { font-size: 0.78rem; color: #e2e8f0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .form-label {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   font-weight: 500;
 }
 .form-input {
@@ -494,7 +494,7 @@ body {
 }
 .form-optional {
   font-size: 0.72rem;
-  color: #475569;
+  color: #e2e8f0;
   font-weight: 400;
 }
 
@@ -516,7 +516,7 @@ body {
 
 .last-updated {
   font-size: 0.8rem;
-  color: #64748b;
+  color: #e2e8f0;
   margin-top: 0.25rem;
 }
 
@@ -536,7 +536,7 @@ body {
 .selector-header h2 {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #94a3b8;
+  color: #e2e8f0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -546,7 +546,7 @@ body {
   border-radius: 6px;
   border: 1px solid #334155;
   background: transparent;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -565,7 +565,7 @@ body {
   border-radius: 20px;
   border: 1px solid #334155;
   background: #0f172a;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
@@ -633,7 +633,7 @@ body {
 .chip-remove {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
   font-size: 1rem;
   padding: 0.3rem 0.6rem 0.3rem 0.2rem;
@@ -643,13 +643,13 @@ body {
   color: #f87171;
 }
 .fund-search-item-added {
-  opacity: 0.5;
+  opacity: 0.85;
   cursor: default;
 }
 .item-badge {
   margin-left: 0.5rem;
   font-size: 0.7rem;
-  color: #64748b;
+  color: #e2e8f0;
   background: #1e293b;
   border-radius: 4px;
   padding: 0.1rem 0.4rem;
@@ -683,7 +683,7 @@ body {
 }
 .modal-desc {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   line-height: 1.6;
 }
 .modal-desc code {
@@ -717,7 +717,7 @@ body {
   border-radius: 6px;
   border: 1px solid #334155;
   background: transparent;
-  color: #94a3b8;
+  color: #e2e8f0;
   cursor: pointer;
 }
 .btn-modal-cancel:hover { background: #334155; color: #f1f5f9; }
@@ -753,7 +753,7 @@ body {
   border-color: #3b82f6;
 }
 .fund-search-input::placeholder {
-  color: #475569;
+  color: #e2e8f0;
 }
 .fund-search-dropdown {
   position: absolute;
@@ -772,7 +772,7 @@ body {
 .fund-search-item {
   padding: 0.4rem 0.85rem;
   font-size: 0.82rem;
-  color: #cbd5e1;
+  color: #f1f5f9;
   cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
@@ -783,7 +783,7 @@ body {
 .fund-search-empty {
   padding: 0.6rem 0.85rem;
   font-size: 0.82rem;
-  color: #475569;
+  color: #e2e8f0;
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 8px;
@@ -817,10 +817,10 @@ body {
   justify-content: center;
   min-height: 160px;
   gap: 0.5rem;
-  color: #64748b;
+  color: #e2e8f0;
 }
 .fund-card-error h3 {
-  color: #94a3b8;
+  color: #e2e8f0;
 }
 
 .fund-card-header {
@@ -836,7 +836,7 @@ body {
 }
 .fund-name {
   font-size: 0.78rem;
-  color: #64748b;
+  color: #e2e8f0;
 }
 .fund-stats {
   display: flex;
@@ -859,7 +859,7 @@ body {
 }
 .nav-date {
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   font-variant-numeric: tabular-nums;
 }
 .badge {
@@ -879,7 +879,7 @@ body {
 
 .chart-label {
   font-size: 0.72rem;
-  color: #64748b;
+  color: #e2e8f0;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.25rem;
@@ -896,7 +896,7 @@ body {
   line-height: 1.6;
 }
 .tooltip-date {
-  color: #94a3b8;
+  color: #e2e8f0;
   margin-bottom: 0.25rem;
   font-weight: 600;
 }
