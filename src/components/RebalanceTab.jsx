@@ -85,11 +85,11 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
   const allFundCodes = funds.map((f) => f.code);
 
   function setPlanField(code, field, value) {
-    setPlan((p) => ({ ...p, [code]: { action: 'hold', amount: '', ...p[code], [field]: value } }));
+    setPlan((p) => ({ ...p, [code]: { action: 'hold', amount: '', sellMode: 'money', ...p[code], [field]: value } }));
   }
 
   function getEntry(code) {
-    return plan[code] ?? { action: 'hold', amount: '' };
+    return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money' };
   }
 
   // คำนวณผล rebalance
@@ -99,18 +99,21 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
     const units = fund.unitBalance ?? null;
     const currentValue = lastNav != null && units != null ? lastNav * units : null;
     const entry = getEntry(fund.code);
-    const amt = parseFloat(entry.amount) || 0;
+    const rawAmt = parseFloat(entry.amount) || 0;
+    // sellMode: 'money' = ใส่เป็นบาท, 'unit' = ใส่เป็น unit แล้วคำนวณเป็นบาทจาก NAV
+    const sellMoney = entry.sellMode === 'unit' && lastNav ? rawAmt * lastNav : rawAmt;
     let afterValue = currentValue;
-    if (entry.action === 'sell' && currentValue != null) afterValue = Math.max(0, currentValue - amt);
-    if (entry.action === 'buy' && currentValue != null) afterValue = currentValue + amt;
-    if (fund._new) afterValue = entry.action === 'buy' ? amt : 0;
+    if (entry.action === 'sell' && currentValue != null) afterValue = Math.max(0, currentValue - sellMoney);
+    if (entry.action === 'buy' && currentValue != null) afterValue = currentValue + rawAmt;
+    if (fund._new) afterValue = entry.action === 'buy' ? rawAmt : 0;
     const afterUnits = afterValue != null && lastNav ? afterValue / lastNav : null;
-    return { ...fund, lastNav, currentValue, afterValue, afterUnits, entry };
+    const sellValueDisplay = entry.action === 'sell' && entry.sellMode === 'unit' ? sellMoney : null;
+    return { ...fund, lastNav, currentValue, afterValue, afterUnits, entry, sellMoney, sellValueDisplay };
   });
 
   const totalBefore = rows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
   const totalAfter = rows.reduce((s, r) => s + (r.afterValue ?? r.currentValue ?? 0), 0);
-  const totalSell = rows.filter((r) => r.entry.action === 'sell').reduce((s, r) => s + (parseFloat(r.entry.amount) || 0), 0);
+  const totalSell = rows.filter((r) => r.entry.action === 'sell').reduce((s, r) => s + r.sellMoney, 0);
   const totalBuy = rows.filter((r) => r.entry.action === 'buy').reduce((s, r) => s + (parseFloat(r.entry.amount) || 0), 0);
 
   return (
@@ -164,13 +167,30 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
                   </button>
                 ))}
               </div>
+              {r.entry.action === 'sell' && (
+                <div className="sell-mode-toggle">
+                  <button
+                    className={`sell-mode-btn ${r.entry.sellMode !== 'unit' ? 'active' : ''}`}
+                    onClick={() => setPlanField(r.code, 'sellMode', 'money')}>฿ บาท</button>
+                  <button
+                    className={`sell-mode-btn ${r.entry.sellMode === 'unit' ? 'active' : ''}`}
+                    onClick={() => { setPlanField(r.code, 'sellMode', 'unit'); setPlanField(r.code, 'amount', ''); }}>หน่วย</button>
+                </div>
+              )}
               {r.entry.action !== 'hold' && (
-                <input className="rebalance-amount-input"
-                  type="number" step="100" min="0"
-                  value={r.entry.amount}
-                  placeholder="จำนวนเงิน (฿)"
-                  onChange={(e) => setPlanField(r.code, 'amount', e.target.value)}
-                />
+                <div className="rebalance-input-wrap">
+                  <input className="rebalance-amount-input"
+                    type="number"
+                    step={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? '1' : '100'}
+                    min="0"
+                    value={r.entry.amount}
+                    placeholder={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? 'จำนวน unit' : 'จำนวนเงิน (฿)'}
+                    onChange={(e) => setPlanField(r.code, 'amount', e.target.value)}
+                  />
+                  {r.sellValueDisplay != null && (
+                    <span className="sell-unit-calc">= ฿{fmtMoney(r.sellValueDisplay)}</span>
+                  )}
+                </div>
               )}
               {r.entry.action !== 'hold' && r.afterValue != null && (
                 <div className="rebalance-after">

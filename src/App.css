@@ -948,6 +948,20 @@ body {
   outline: none;
 }
 .rebalance-amount-input:focus { border-color: #3b82f6; }
+.sell-mode-toggle { display: flex; gap: 0.25rem; margin-bottom: 0.25rem; }
+.sell-mode-btn {
+  padding: 0.2rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sell-mode-btn.active { background: rgba(248,113,113,0.15); border-color: #f87171; color: #f87171; }
+.rebalance-input-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.sell-unit-calc { font-size: 0.78rem; color: #f87171; white-space: nowrap; }
 .rebalance-after { font-size: 0.75rem; color: #e2e8f0; text-align: right; display: flex; flex-direction: column; gap: 0.1rem; }
 .badge-new {
   font-size: 0.6rem;
