@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AuthButton from './components/AuthButton';
 import FundChart from './components/FundChart';
 import FundManager from './components/FundManager';
 import RebalanceTab from './components/RebalanceTab';
 import { initGoogleAuth } from './utils/googleAuth';
-import { loadFundConfig, saveFundConfig } from './utils/googleDrive';
+import { loadFundConfig, saveFundConfig, loadRebalancePlan, saveRebalancePlan } from './utils/googleDrive';
 import { lookupProjId, fetchNAV } from './utils/secApi';
 import { calculateMACD } from './utils/macd';
 import './App.css';
@@ -60,6 +60,8 @@ export default function App() {
   const [showExport, setShowExport] = useState(false);
   const [exportOpts, setExportOpts] = useState({ nav: true, unit: true });
   const [copied, setCopied] = useState(false);
+  const [rebalancePlan, setRebalancePlan] = useState({});
+  const rebalanceSaveTimer = useRef(null);
 
   useEffect(() => {
     initGoogleAuth((token) => {
@@ -81,7 +83,18 @@ export default function App() {
     loadFundConfig()
       .then((cfg) => setFunds(cfg ?? []))
       .catch((e) => console.error('loadFundConfig:', e));
+    loadRebalancePlan()
+      .then((plan) => setRebalancePlan(plan ?? {}))
+      .catch((e) => console.error('loadRebalancePlan:', e));
   }, [user]);
+
+  function handleRebalancePlanChange(plan) {
+    setRebalancePlan(plan);
+    clearTimeout(rebalanceSaveTimer.current);
+    rebalanceSaveTimer.current = setTimeout(() => {
+      saveRebalancePlan(plan).catch(console.error);
+    }, 1500);
+  }
 
   const fetchFundNav = useCallback(async (fund, forceRefresh = false) => {
     // check sessionStorage cache first (valid for current browser session)
@@ -425,6 +438,8 @@ export default function App() {
         <RebalanceTab
           funds={funds}
           navData={navData}
+          plan={rebalancePlan}
+          onPlanChange={handleRebalancePlanChange}
           onAddFund={handleAddRebalanceFund}
           onRemoveFund={removeFund}
         />

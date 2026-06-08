@@ -77,15 +77,14 @@ function FundSearch({ existingCodes, onAdd }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }) {
-  const [plan, setPlan] = useState({});
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAddFund, onRemoveFund }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
   const allFundCodes = funds.map((f) => f.code);
 
   function setPlanField(code, field, value) {
-    setPlan((p) => ({ ...p, [code]: { action: 'hold', amount: '', sellMode: 'money', customNav: '', ...p[code], [field]: value } }));
+    onPlanChange({ ...plan, [code]: { action: 'hold', amount: '', sellMode: 'money', customNav: '', ...plan[code], [field]: value } });
   }
 
   function getEntry(code) {
@@ -124,7 +123,7 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
     <div className="rebalance-main">
       {/* Summary */}
       <div className="portfolio-summary" style={{ position: 'relative' }}>
-        <button className="btn-rebalance-clear" onClick={() => setPlan({})}>ล้างแผน</button>
+        <button className="btn-rebalance-clear" onClick={() => onPlanChange({})}>ล้างแผน</button>
         <div className="summary-card">
           <span>มูลค่าก่อน</span>
           <strong>฿{fmtMoney(totalBefore)}</strong>
