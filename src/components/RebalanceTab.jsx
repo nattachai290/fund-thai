@@ -97,6 +97,8 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
       : fetchedNav;
     const units = fund.unitBalance ?? null;
     const currentValue = lastNav != null && units != null ? lastNav * units : null;
+    // totalUnits: ใช้ unitBalance ถ้ามี ไม่งั้น fallback คำนวณจาก currentValue/NAV
+    const totalUnits = units ?? (currentValue != null && lastNav ? currentValue / lastNav : null);
     const rawAmt = parseFloat(entry.amount) || 0;
     // sellMode: 'money' = ใส่เป็นบาท, 'unit' = ใส่เป็น unit แล้วคำนวณเป็นบาทจาก NAV
     const sellMoney = entry.sellMode === 'unit' && lastNav ? rawAmt * lastNav : rawAmt;
@@ -107,7 +109,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
     const afterUnits = afterValue != null && lastNav ? afterValue / lastNav : null;
     const sellValueDisplay = entry.action === 'sell' && entry.sellMode === 'unit' ? sellMoney : null;
     const navIsCustom = entry.customNav !== '' && parseFloat(entry.customNav) > 0;
-    return { ...fund, lastNav, fetchedNav, currentValue, afterValue, afterUnits, entry, sellMoney, sellValueDisplay, navIsCustom };
+    return { ...fund, lastNav, fetchedNav, currentValue, totalUnits, afterValue, afterUnits, entry, sellMoney, sellValueDisplay, navIsCustom };
   });
 
   const totalBefore = rows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
@@ -173,7 +175,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                     className={`rebalance-action-btn ${r.entry.action === a ? `active-${a}` : ''}`}
                     onClick={() => {
                       if (a === 'sell' && r.entry.action !== 'sell') {
-                        const defaultUnits = r.unitBalance != null ? String(r.unitBalance) : '';
+                        const defaultUnits = r.totalUnits != null ? String(Number(r.totalUnits.toFixed(4))) : '';
                         onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits });
                       } else {
                         onSetPlanFields(r.code, { action: a });
