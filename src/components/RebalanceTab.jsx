@@ -85,20 +85,23 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
   const allFundCodes = funds.map((f) => f.code);
 
   function setPlanField(code, field, value) {
-    setPlan((p) => ({ ...p, [code]: { action: 'hold', amount: '', sellMode: 'money', ...p[code], [field]: value } }));
+    setPlan((p) => ({ ...p, [code]: { action: 'hold', amount: '', sellMode: 'money', customNav: '', ...p[code], [field]: value } }));
   }
 
   function getEntry(code) {
-    return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money' };
+    return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money', customNav: '' };
   }
 
   // คำนวณผล rebalance
   const rows = [...portfolioFunds, ...rebalanceOnlyFunds.map((f) => ({ ...f, _new: true }))].map((fund) => {
-    const rows = navData[fund.code];
-    const lastNav = rows?.[rows.length - 1]?.nav ?? null;
+    const navRows = navData[fund.code];
+    const fetchedNav = navRows?.[navRows.length - 1]?.nav ?? null;
+    const entry = getEntry(fund.code);
+    const lastNav = entry.customNav !== '' && parseFloat(entry.customNav) > 0
+      ? parseFloat(entry.customNav)
+      : fetchedNav;
     const units = fund.unitBalance ?? null;
     const currentValue = lastNav != null && units != null ? lastNav * units : null;
-    const entry = getEntry(fund.code);
     const rawAmt = parseFloat(entry.amount) || 0;
     // sellMode: 'money' = ใส่เป็นบาท, 'unit' = ใส่เป็น unit แล้วคำนวณเป็นบาทจาก NAV
     const sellMoney = entry.sellMode === 'unit' && lastNav ? rawAmt * lastNav : rawAmt;
@@ -108,7 +111,8 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
     if (fund._new) afterValue = entry.action === 'buy' ? rawAmt : 0;
     const afterUnits = afterValue != null && lastNav ? afterValue / lastNav : null;
     const sellValueDisplay = entry.action === 'sell' && entry.sellMode === 'unit' ? sellMoney : null;
-    return { ...fund, lastNav, currentValue, afterValue, afterUnits, entry, sellMoney, sellValueDisplay };
+    const navIsCustom = entry.customNav !== '' && parseFloat(entry.customNav) > 0;
+    return { ...fund, lastNav, fetchedNav, currentValue, afterValue, afterUnits, entry, sellMoney, sellValueDisplay, navIsCustom };
   });
 
   const totalBefore = rows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
@@ -150,9 +154,18 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
               </div>
               <span className="port-name">{r.name}</span>
               <div className="rebalance-nav-row">
-                <span className="rebalance-nav">NAV {fmt(r.lastNav)}</span>
+                <span className="rebalance-nav-label">NAV</span>
+                <input
+                  className={`rebalance-nav-input ${r.navIsCustom ? 'nav-custom' : ''}`}
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={r.entry.customNav}
+                  placeholder={r.fetchedNav != null ? fmt(r.fetchedNav) : '—'}
+                  onChange={(e) => setPlanField(r.code, 'customNav', e.target.value)}
+                />
                 {!r._new && r.currentValue != null && (
-                  <span className="rebalance-val">มูลค่า ฿{fmtMoney(r.currentValue)}</span>
+                  <span className="rebalance-val">฿{fmtMoney(r.currentValue)}</span>
                 )}
               </div>
             </div>
