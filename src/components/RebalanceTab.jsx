@@ -171,7 +171,14 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                 {(r._new ? ['buy', 'hold'] : ['sell', 'hold', 'buy']).map((a) => (
                   <button key={a}
                     className={`rebalance-action-btn ${r.entry.action === a ? `active-${a}` : ''}`}
-                    onClick={() => onSetPlanFields(r.code, { action: a })}>
+                    onClick={() => {
+                      if (a === 'sell' && r.entry.action !== 'sell') {
+                        const defaultUnits = r.unitBalance != null ? String(r.unitBalance) : '';
+                        onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits });
+                      } else {
+                        onSetPlanFields(r.code, { action: a });
+                      }
+                    }}>
                     {a === 'sell' ? 'ขาย' : a === 'buy' ? 'ซื้อ' : 'คงเดิม'}
                   </button>
                 ))}
