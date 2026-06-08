@@ -123,7 +123,8 @@ export default function RebalanceTab({ funds, navData, onAddFund, onRemoveFund }
   return (
     <div className="rebalance-main">
       {/* Summary */}
-      <div className="portfolio-summary">
+      <div className="portfolio-summary" style={{ position: 'relative' }}>
+        <button className="btn-rebalance-clear" onClick={() => setPlan({})}>ล้างแผน</button>
         <div className="summary-card">
           <span>มูลค่าก่อน</span>
           <strong>฿{fmtMoney(totalBefore)}</strong>

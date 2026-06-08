@@ -917,6 +917,20 @@ body {
 .rebalance-fund-info { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
 .rebalance-fund-top { display: flex; align-items: center; gap: 0.4rem; }
 .rebalance-nav { font-size: 0.8rem; color: #60a5fa; font-variant-numeric: tabular-nums; }
+.btn-rebalance-clear {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-rebalance-clear:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
 .rebalance-val { font-size: 0.8rem; color: #e2e8f0; font-variant-numeric: tabular-nums; }
 .rebalance-controls { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; }
 .rebalance-action-tabs { display: flex; gap: 0.25rem; }
