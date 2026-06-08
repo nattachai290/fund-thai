@@ -1,14 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AuthButton from './components/AuthButton';
 import FundChart from './components/FundChart';
 import FundManager from './components/FundManager';
+import RebalanceTab from './components/RebalanceTab';
 import { initGoogleAuth } from './utils/googleAuth';
-import { loadFundConfig, saveFundConfig } from './utils/googleDrive';
+import { loadFundConfig, saveFundConfig, loadRebalancePlan, saveRebalancePlan } from './utils/googleDrive';
 import { lookupProjId, fetchNAV } from './utils/secApi';
 import { calculateMACD } from './utils/macd';
 import './App.css';
 
-const TABS = ['MACD', 'Portfolio'];
+const TABS = ['MACD', 'Portfolio', 'Rebalance'];
 
 // Fill missing trading days with previous NAV so EMA treats each calendar day equally
 function forwardFillTradingDays(navRows) {
@@ -59,6 +60,8 @@ export default function App() {
   const [showExport, setShowExport] = useState(false);
   const [exportOpts, setExportOpts] = useState({ nav: true, unit: true });
   const [copied, setCopied] = useState(false);
+  const [rebalancePlan, setRebalancePlan] = useState({});
+  const rebalanceSaveTimer = useRef(null);
 
   useEffect(() => {
     initGoogleAuth((token) => {
@@ -80,7 +83,18 @@ export default function App() {
     loadFundConfig()
       .then((cfg) => setFunds(cfg ?? []))
       .catch((e) => console.error('loadFundConfig:', e));
+    loadRebalancePlan()
+      .then((plan) => setRebalancePlan(plan ?? {}))
+      .catch((e) => console.error('loadRebalancePlan:', e));
   }, [user]);
+
+  function handleRebalancePlanChange(plan) {
+    setRebalancePlan(plan);
+    clearTimeout(rebalanceSaveTimer.current);
+    rebalanceSaveTimer.current = setTimeout(() => {
+      saveRebalancePlan(plan).catch(console.error);
+    }, 1500);
+  }
 
   const fetchFundNav = useCallback(async (fund, forceRefresh = false) => {
     // check sessionStorage cache first (valid for current browser session)
@@ -173,6 +187,23 @@ export default function App() {
     saveFundConfig(updated).catch(console.error);
   }
 
+  function handleAddRebalanceFund(item) {
+    if (funds.find((f) => f.code === item.code)) return;
+    const newFund = {
+      code: item.code,
+      name: item.name || item.code,
+      projectInfo: item.projAbbr,
+      companyInfo: '',
+      classFundName: item.classFundName,
+      projId: item.projId,
+      isDividend: item.isDividend,
+      rebalanceOnly: true,
+      avgCost: null,
+      unitBalance: null,
+    };
+    handleSaveFunds([...funds, newFund]);
+  }
+
   function buildExportText() {
     return funds.map((f) => {
       const rows = navData[f.code];
@@ -225,7 +256,8 @@ export default function App() {
   }
 
   // ─── Portfolio calculations ─────────────────────────────────────────────────
-  const portfolioRows = funds.map((f) => {
+  const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
+  const portfolioRows = portfolioFunds.map((f) => {
     const rows = navData[f.code];
     const lastNav = rows?.[rows.length - 1]?.nav ?? null;
     const cost = f.avgCost ?? null;
@@ -238,18 +270,18 @@ export default function App() {
   });
 
   const totalValue = portfolioRows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
-  const totalCost = funds.reduce((s, f) => s + (f.avgCost ?? 0) * (f.unitBalance ?? 0), 0);
+  const totalCost = portfolioFunds.reduce((s, f) => s + (f.avgCost ?? 0) * (f.unitBalance ?? 0), 0);
 
   // group by companyInfo
   const groups = [];
   const seen = new Set();
-  for (const f of funds) {
+  for (const f of portfolioFunds) {
     const key = f.companyInfo || '';
     if (!seen.has(key)) { seen.add(key); groups.push(key); }
   }
   const groupedFunds = groups.map((key) => ({
     company: key,
-    funds: portfolioRows.filter((r) => (r.companyInfo || '') === key),
+    funds: portfolioRows.filter((r) => (r.companyInfo || '') === key && !r.rebalanceOnly),
   }));
   const totalPnl = totalValue - totalCost;
 
@@ -275,7 +307,7 @@ export default function App() {
             className={`tab ${activeTab === t ? 'tab-active' : ''}`}
             onClick={() => setActiveTab(t)}
           >
-            {t === 'MACD' ? '📊 MACD' : '💼 Portfolio'}
+            {t === 'MACD' ? '📊 MACD' : t === 'Portfolio' ? '💼 Portfolio' : '⚖️ Rebalance'}
           </button>
         ))}
       </div>
@@ -399,6 +431,18 @@ export default function App() {
             </>
           )}
         </main>
+      )}
+
+      {/* ── Rebalance Tab ──────────────────────────────────────────────────────── */}
+      {activeTab === 'Rebalance' && (
+        <RebalanceTab
+          funds={funds}
+          navData={navData}
+          plan={rebalancePlan}
+          onPlanChange={handleRebalancePlanChange}
+          onAddFund={handleAddRebalanceFund}
+          onRemoveFund={removeFund}
+        />
       )}
 
       {showExport && (

@@ -900,3 +900,116 @@ body {
   margin-bottom: 0.25rem;
   font-weight: 600;
 }
+
+/* ── Rebalance Tab ── */
+.rebalance-main { padding: 0.25rem 0; }
+.rebalance-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.rebalance-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1rem;
+}
+.rebalance-row-new { border-color: #1d4ed8; background: rgba(29,78,216,0.08); }
+.rebalance-fund-info { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+.rebalance-fund-top { display: flex; align-items: center; gap: 0.4rem; }
+.rebalance-nav { font-size: 0.8rem; color: #60a5fa; font-variant-numeric: tabular-nums; }
+.btn-rebalance-clear {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-rebalance-clear:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+.rebalance-val { font-size: 0.8rem; color: #e2e8f0; font-variant-numeric: tabular-nums; }
+.rebalance-controls { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; }
+.rebalance-action-tabs { display: flex; gap: 0.25rem; }
+.rebalance-action-btn {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.rebalance-action-btn:hover { border-color: #475569; }
+.rebalance-action-btn.active-hold { background: #334155; border-color: #475569; }
+.rebalance-action-btn.active-sell { background: rgba(248,113,113,0.15); border-color: #f87171; color: #f87171; }
+.rebalance-action-btn.active-buy { background: rgba(52,211,153,0.15); border-color: #34d399; color: #34d399; }
+.rebalance-amount-input {
+  width: 160px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.rebalance-amount-input:focus { border-color: #3b82f6; }
+.rebalance-nav-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.rebalance-nav-label { font-size: 0.72rem; color: #94a3b8; }
+.rebalance-nav-input {
+  width: 90px;
+  padding: 0.15rem 0.4rem;
+  border-radius: 5px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+.rebalance-nav-input:focus { border-color: #3b82f6; }
+.rebalance-nav-input.nav-custom { border-color: #f59e0b; color: #fbbf24; }
+.sell-mode-toggle { display: flex; gap: 0.25rem; margin-bottom: 0.25rem; }
+.sell-mode-btn {
+  padding: 0.2rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.sell-mode-btn.active { background: rgba(248,113,113,0.15); border-color: #f87171; color: #f87171; }
+.rebalance-input-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.sell-unit-calc { font-size: 0.78rem; color: #f87171; white-space: nowrap; }
+.rebalance-after { font-size: 0.75rem; color: #e2e8f0; text-align: right; display: flex; flex-direction: column; gap: 0.1rem; }
+.badge-new {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(29,78,216,0.2);
+  color: #818cf8;
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+.rebalance-search-box {
+  background: #1e293b;
+  border: 1px dashed #334155;
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.rebalance-search-title { font-size: 0.78rem; color: #e2e8f0; font-weight: 600; }
+.rebalance-search-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.rebalance-select { flex: 1; min-width: 180px; }
+.rebalance-kw { flex: 1; min-width: 140px; }
