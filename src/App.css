@@ -906,7 +906,8 @@ body {
 .rebalance-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
 .rebalance-row {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   gap: 1rem;
   background: #1e293b;
   border: 1px solid #334155;
@@ -932,11 +933,12 @@ body {
 }
 .btn-rebalance-clear:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
 .rebalance-val { font-size: 0.8rem; color: #e2e8f0; font-variant-numeric: tabular-nums; }
-.rebalance-controls { display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; }
-.rebalance-action-tabs { display: flex; gap: 0.25rem; }
+.rebalance-controls { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+.rebalance-action-tabs { display: flex; gap: 0.25rem; flex-wrap: wrap; }
 .rebalance-action-btn {
-  font-size: 0.78rem;
-  padding: 0.3rem 0.65rem;
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.5rem;
   border-radius: 6px;
   border: 1px solid #334155;
   background: transparent;
@@ -949,7 +951,7 @@ body {
 .rebalance-action-btn.active-sell { background: rgba(248,113,113,0.15); border-color: #f87171; color: #f87171; }
 .rebalance-action-btn.active-buy { background: rgba(52,211,153,0.15); border-color: #34d399; color: #34d399; }
 .rebalance-amount-input {
-  width: 160px;
+  width: 100%;
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
   border: 1px solid #334155;
@@ -989,8 +991,8 @@ body {
 }
 .sell-mode-btn.active { background: rgba(248,113,113,0.15); border-color: #f87171; color: #f87171; }
 .rebalance-input-wrap { display: flex; align-items: center; gap: 0.5rem; }
-.sell-unit-calc { font-size: 0.78rem; color: #f87171; white-space: nowrap; }
-.rebalance-after { font-size: 0.75rem; color: #e2e8f0; text-align: right; display: flex; flex-direction: column; gap: 0.1rem; }
+.sell-unit-calc { font-size: 0.82rem; color: #f87171; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rebalance-after { font-size: 0.78rem; color: #94a3b8; display: flex; gap: 1rem; flex-wrap: wrap; }
 .badge-new {
   font-size: 0.6rem;
   font-weight: 700;

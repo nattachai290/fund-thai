@@ -96,6 +96,20 @@ export default function App() {
     }, 1500);
   }
 
+  function handleSetPlanFields(code, fields) {
+    setRebalancePlan((prev) => {
+      const next = {
+        ...prev,
+        [code]: { action: 'hold', amount: '', sellMode: 'money', customNav: '', ...prev[code], ...fields },
+      };
+      clearTimeout(rebalanceSaveTimer.current);
+      rebalanceSaveTimer.current = setTimeout(() => {
+        saveRebalancePlan(next).catch(console.error);
+      }, 1500);
+      return next;
+    });
+  }
+
   const fetchFundNav = useCallback(async (fund, forceRefresh = false) => {
     // check sessionStorage cache first (valid for current browser session)
     const cacheKey = `nav_${fund.code}`;
@@ -440,6 +454,7 @@ export default function App() {
           navData={navData}
           plan={rebalancePlan}
           onPlanChange={handleRebalancePlanChange}
+          onSetPlanFields={handleSetPlanFields}
           onAddFund={handleAddRebalanceFund}
           onRemoveFund={removeFund}
         />

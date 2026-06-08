@@ -77,15 +77,11 @@ function FundSearch({ existingCodes, onAdd }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAddFund, onRemoveFund }) {
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
   const allFundCodes = funds.map((f) => f.code);
-
-  function setPlanFields(code, fields) {
-    onPlanChange({ ...plan, [code]: { action: 'hold', amount: '', sellMode: 'money', customNav: '', ...plan[code], ...fields } });
-  }
 
   function getEntry(code) {
     return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money', customNav: '' };
@@ -162,7 +158,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAdd
                   min="0"
                   value={r.entry.customNav}
                   placeholder={r.fetchedNav != null ? fmt(r.fetchedNav) : '—'}
-                  onChange={(e) => setPlanFields(r.code, { customNav: e.target.value })}
+                  onChange={(e) => onSetPlanFields(r.code, { customNav: e.target.value })}
                 />
                 {!r._new && r.currentValue != null && (
                   <span className="rebalance-val">฿{fmtMoney(r.currentValue)}</span>
@@ -175,7 +171,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAdd
                 {(r._new ? ['buy', 'hold'] : ['sell', 'hold', 'buy']).map((a) => (
                   <button key={a}
                     className={`rebalance-action-btn ${r.entry.action === a ? `active-${a}` : ''}`}
-                    onClick={() => setPlanFields(r.code, { action: a })}>
+                    onClick={() => onSetPlanFields(r.code, { action: a })}>
                     {a === 'sell' ? 'ขาย' : a === 'buy' ? 'ซื้อ' : 'คงเดิม'}
                   </button>
                 ))}
@@ -184,10 +180,10 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAdd
                 <div className="sell-mode-toggle">
                   <button
                     className={`sell-mode-btn ${r.entry.sellMode !== 'unit' ? 'active' : ''}`}
-                    onClick={() => setPlanFields(r.code, { sellMode: 'money' })}>฿ บาท</button>
+                    onClick={() => onSetPlanFields(r.code, { sellMode: 'money' })}>฿ บาท</button>
                   <button
                     className={`sell-mode-btn ${r.entry.sellMode === 'unit' ? 'active' : ''}`}
-                    onClick={() => { setPlanFields(r.code, { sellMode: 'unit', amount: '' }) }}>หน่วย</button>
+                    onClick={() => { onSetPlanFields(r.code, { sellMode: 'unit', amount: '' }) }}>หน่วย</button>
                 </div>
               )}
               {r.entry.action !== 'hold' && (
@@ -198,7 +194,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onAdd
                     min="0"
                     value={r.entry.amount}
                     placeholder={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? 'จำนวน unit' : 'จำนวนเงิน (฿)'}
-                    onChange={(e) => setPlanFields(r.code, { amount: e.target.value })}
+                    onChange={(e) => onSetPlanFields(r.code, { amount: e.target.value })}
                   />
                   {r.sellValueDisplay != null && (
                     <span className="sell-unit-calc">= ฿{fmtMoney(r.sellValueDisplay)}</span>
