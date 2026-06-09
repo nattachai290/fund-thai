@@ -116,6 +116,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
   const totalAfter = rows.reduce((s, r) => s + (r.afterValue ?? r.currentValue ?? 0), 0);
   const totalSell = rows.filter((r) => r.entry.action === 'sell').reduce((s, r) => s + r.sellMoney, 0);
   const totalBuy = rows.filter((r) => r.entry.action === 'buy').reduce((s, r) => s + (parseFloat(r.entry.amount) || 0), 0);
+  const cashDiff = totalSell - totalBuy;
 
   return (
     <div className="rebalance-main">
@@ -133,6 +134,10 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
         <div className="summary-card">
           <span>ซื้อรวม</span>
           <strong style={{ color: '#34d399' }}>+฿{fmtMoney(totalBuy)}</strong>
+        </div>
+        <div className={`summary-card ${cashDiff >= 0 ? 'pnl-pos' : 'pnl-neg'}`}>
+          <span>เงินสดสุทธิ</span>
+          <strong>{cashDiff >= 0 ? '+' : '-'}฿{fmtMoney(Math.abs(cashDiff))}</strong>
         </div>
         <div className="summary-card">
           <span>มูลค่าหลัง</span>
