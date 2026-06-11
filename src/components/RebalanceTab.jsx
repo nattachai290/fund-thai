@@ -96,7 +96,7 @@ function PieSection({ title, data, total }) {
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
           <Legend formatter={(name, entry) => (
             <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
               {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
@@ -140,7 +140,7 @@ function AllocationCharts({ rows }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund }) {
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
@@ -230,6 +230,27 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                 {r.entry.done && <span className="badge-done">✓ เสร็จแล้ว</span>}
               </div>
               <span className="port-name">{r.name}</span>
+              <div className="rebalance-tag-row">
+                {(r.tags ?? []).map((t) => (
+                  <span key={t} className="tag-chip">
+                    {t}
+                    <button className="tag-chip-del" onClick={() => onUpdateTags(r.code, (r.tags ?? []).filter((x) => x !== t))}>×</button>
+                  </span>
+                ))}
+                <input
+                  className="tag-input"
+                  placeholder="+ tag"
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && e.target.value.trim()) {
+                      e.preventDefault();
+                      const v = e.target.value.trim();
+                      const cur = r.tags ?? [];
+                      if (!cur.includes(v)) onUpdateTags(r.code, [...cur, v]);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+              </div>
               <div className="rebalance-nav-row">
                 <span className="rebalance-nav-label">NAV</span>
                 <input

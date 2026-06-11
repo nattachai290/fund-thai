@@ -80,7 +80,7 @@ function PortfolioPieCharts({ rows }) {
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
           <Legend formatter={(name, entry) => (
             <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
               {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
@@ -254,6 +254,14 @@ export default function App() {
     setFunds(updated);
     setNavData((p) => { const n = { ...p }; delete n[code]; return n; });
     saveFundConfig(updated).catch(console.error);
+  }
+
+  function handleUpdateTags(code, tags) {
+    setFunds((prev) => {
+      const updated = prev.map((f) => f.code === code ? { ...f, tags } : f);
+      saveFundConfig(updated).catch(console.error);
+      return updated;
+    });
   }
 
   function handleAddRebalanceFund(item) {
@@ -514,6 +522,7 @@ export default function App() {
           onSetPlanFields={handleSetPlanFields}
           onAddFund={handleAddRebalanceFund}
           onRemoveFund={removeFund}
+          onUpdateTags={handleUpdateTags}
         />
       )}
 
