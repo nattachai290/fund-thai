@@ -140,7 +140,7 @@ function AllocationCharts({ rows }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags }) {
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags, onUpdateGroup }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
@@ -218,22 +218,37 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
 
       <AllocationCharts rows={rows} />
 
-      {/* Fund rows — grouped by company */}
+      {/* Fund rows — 2-level: custom group → company */}
       {(() => {
-        const groups = [];
-        const seen = new Set();
+        // collect ordered top-level groups
+        const topGroups = [];
+        const topSeen = new Set();
         for (const r of rows) {
-          const key = r._new ? '__new__' : (r.companyInfo || '');
-          if (!seen.has(key)) { seen.add(key); groups.push(key); }
+          const key = r._new ? '__new__' : (r.group || '');
+          if (!topSeen.has(key)) { topSeen.add(key); topGroups.push(key); }
         }
-        return groups.map((key) => {
-          const label = key === '__new__' ? 'กองทุนใหม่' : key || 'ไม่ระบุ';
-          const group = rows.filter((r) => (r._new ? '__new__' : (r.companyInfo || '')) === key);
+        return topGroups.map((topKey) => {
+          const topRows = rows.filter((r) => (r._new ? '__new__' : (r.group || '')) === topKey);
+          const topLabel = topKey === '__new__' ? 'กองทุนใหม่' : topKey || 'ไม่มีกลุ่ม';
+
+          // sub-group by company within this top group
+          const subGroups = [];
+          const subSeen = new Set();
+          for (const r of topRows) {
+            const k = r.companyInfo || '';
+            if (!subSeen.has(k)) { subSeen.add(k); subGroups.push(k); }
+          }
+
           return (
-            <div key={key} className="port-group">
-              <h3 className="port-group-title">{label}</h3>
-              <div className="rebalance-list">
-                {group.map((r) => (
+            <div key={topKey} className="rebalance-top-group">
+              <h2 className="rebalance-top-group-title">{topLabel}</h2>
+              {subGroups.map((subKey) => {
+                const subRows = topRows.filter((r) => (r.companyInfo || '') === subKey);
+                return (
+                  <div key={subKey} className="port-group">
+                    {subKey && <h3 className="port-group-title">{subKey}</h3>}
+                    <div className="rebalance-list">
+                      {subRows.map((r) => (
           <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''} ${r.entry.done ? 'rebalance-row-done' : ''}`}>
             <div className="rebalance-fund-info">
               <div className="rebalance-fund-top">
@@ -243,6 +258,14 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                 {r.entry.done && <span className="badge-done">✓ เสร็จแล้ว</span>}
               </div>
               <span className="port-name">{r.name}</span>
+              {!r._new && (
+                <input
+                  className="rebalance-group-input"
+                  value={r.group || ''}
+                  placeholder="กลุ่มใหญ่…"
+                  onChange={(e) => onUpdateGroup(r.code, e.target.value)}
+                />
+              )}
               <div className="rebalance-tag-row">
                 {(r.tags ?? []).map((t) => (
                   <span key={t} className="tag-chip">
@@ -344,9 +367,11 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
               <button className="btn-icon btn-icon-del" style={{ alignSelf: 'flex-start' }}
                 onClick={() => onRemoveFund(r.code)}>🗑</button>
             )}
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           );
         });

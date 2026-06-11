@@ -195,6 +195,30 @@ body {
 /* ── Group sections ── */
 .portfolio-charts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .portfolio-charts .rebalance-chart-box { flex: 1; min-width: 280px; }
+.rebalance-top-group { margin-bottom: 2rem; }
+.rebalance-top-group-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  padding: 0.4rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border-left: 3px solid #6366f1;
+  background: rgba(99,102,241,0.08);
+  border-radius: 0 6px 6px 0;
+}
+.rebalance-group-input {
+  width: 100%;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  border: 1px dashed #334155;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  outline: none;
+  margin: 0.15rem 0;
+}
+.rebalance-group-input:focus { border-color: #6366f1; color: #e2e8f0; }
+.rebalance-group-input::placeholder { color: #475569; }
 .port-group { margin-bottom: 1.75rem; }
 .port-group-title {
   font-size: 0.72rem;
