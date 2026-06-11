@@ -174,7 +174,7 @@ export default function App() {
 
   function openEditPortfolio(fund) {
     setEditingCode(fund.code);
-    setEditForm({ avgCost: fund.avgCost ?? '', unitBalance: fund.unitBalance ?? '' });
+    setEditForm({ avgCost: fund.avgCost ?? '', unitBalance: fund.unitBalance ?? '', tags: fund.tags ?? [] });
   }
 
   function saveEditPortfolio() {
@@ -185,6 +185,7 @@ export default function App() {
               ...f,
               avgCost: editForm.avgCost !== '' ? parseFloat(editForm.avgCost) : null,
               unitBalance: editForm.unitBalance !== '' ? parseFloat(editForm.unitBalance) : null,
+              tags: editForm.tags,
             }
           : f
       );
@@ -515,6 +516,29 @@ export default function App() {
                   onChange={(e) => setEditForm((p) => ({ ...p, unitBalance: e.target.value }))}
                 />
               </label>
+              <div className="form-label">
+                Tags
+                <div className="tag-chips">
+                  {(editForm.tags ?? []).map((t) => (
+                    <span key={t} className="tag-chip">
+                      {t}
+                      <button className="tag-chip-del" onClick={() => setEditForm((p) => ({ ...p, tags: p.tags.filter((x) => x !== t) }))}>×</button>
+                    </span>
+                  ))}
+                  <input
+                    className="tag-input"
+                    placeholder="+ เพิ่ม tag แล้ว Enter"
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ',') && e.target.value.trim()) {
+                        e.preventDefault();
+                        const v = e.target.value.trim();
+                        setEditForm((p) => ({ ...p, tags: p.tags.includes(v) ? p.tags : [...p.tags, v] }));
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </div>
+              </div>
               <button className="btn btn-add" onClick={saveEditPortfolio}>บันทึก</button>
             </div>
           </div>
