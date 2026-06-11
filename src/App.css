@@ -273,10 +273,11 @@ body {
   cursor: pointer;
   padding: 0.2rem 0.3rem;
   border-radius: 4px;
-  opacity: 0.85;
-  transition: opacity 0.15s;
+  color: #94a3b8;
+  transition: color 0.15s;
 }
-.btn-icon:hover { opacity: 1; }
+.btn-icon:hover { color: #e2e8f0; }
+.btn-icon-del { color: #64748b; }
 .btn-icon-del:hover { color: #f87171; }
 .port-name { font-size: 0.72rem; color: #e2e8f0; line-height: 1.35; }
 .port-card-nav { display: flex; align-items: baseline; gap: 0.5rem; }
@@ -291,8 +292,12 @@ body {
 }
 .port-stat { display: flex; flex-direction: column; gap: 0.1rem; }
 .port-stat span:first-child { font-size: 0.65rem; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.04em; }
-.port-stat span:last-child { font-size: 0.82rem; color: #f1f5f9; font-variant-numeric: tabular-nums; }
-.port-stat em { font-style: normal; font-size: 0.72rem; margin-left: 0.3rem; opacity: 0.8; }
+.port-stat span:last-child { font-size: 0.82rem; color: #f1f5f9; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.port-stat em { font-style: normal; font-size: 0.72rem; margin-left: 0.25rem; }
+.port-stat.pnl-pos span:last-child { color: #34d399; }
+.port-stat.pnl-neg span:last-child { color: #f87171; }
+.port-stat.pnl-pos em { color: #34d399; }
+.port-stat.pnl-neg em { color: #f87171; }
 
 /* ── Export modal ── */
 .rebalance-tag-row {
