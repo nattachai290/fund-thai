@@ -140,7 +140,7 @@ function AllocationCharts({ rows }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags, onUpdateGroup }) {
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags, onUpdateGroup, onOpenLabelManager }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
@@ -186,6 +186,9 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
       {/* Summary */}
       <div className="portfolio-summary" style={{ position: 'relative' }}>
         <button className="btn-rebalance-clear" onClick={() => onPlanChange({})}>ล้างแผน</button>
+        {onOpenLabelManager && (
+          <button className="btn-label-mgr btn-label-mgr-rebalance" onClick={onOpenLabelManager}>⊞ กลุ่ม / แท็ก</button>
+        )}
         <div className="summary-card">
           <span>มูลค่าก่อน</span>
           <strong>฿{fmtMoney(totalBefore)}</strong>

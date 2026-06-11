@@ -3,6 +3,7 @@ import AuthButton from './components/AuthButton';
 import FundChart from './components/FundChart';
 import FundManager from './components/FundManager';
 import RebalanceTab from './components/RebalanceTab';
+import LabelManager from './components/LabelManager';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { initGoogleAuth } from './utils/googleAuth';
 import { loadFundConfig, saveFundConfig, loadRebalancePlan, saveRebalancePlan } from './utils/googleDrive';
@@ -115,6 +116,7 @@ export default function App() {
   const [exportOpts, setExportOpts] = useState({ nav: true, unit: true });
   const [copied, setCopied] = useState(false);
   const [rebalancePlan, setRebalancePlan] = useState({});
+  const [showLabelManager, setShowLabelManager] = useState(false);
   const rebalanceSaveTimer = useRef(null);
 
   useEffect(() => {
@@ -360,6 +362,7 @@ export default function App() {
 
   // 2-level: top group (user-named) → company
   const topGroupKeys = [...new Set(portfolioFunds.map((f) => f.group || ''))];
+  const hasNamedGroups = topGroupKeys.some((k) => k !== '');
   const topGroups = topGroupKeys.map((topKey) => {
     const topRows = portfolioRows.filter((r) => (r.group || '') === topKey);
     const subKeys = [...new Set(topRows.map((r) => r.companyInfo || ''))];
@@ -462,14 +465,15 @@ export default function App() {
                   <strong>{totalPnl >= 0 ? '+' : ''}฿{fmtMoney(totalPnl)}</strong>
                 </div>
                 <button className="btn-export" onClick={() => setShowExport(true)}>⬇ Export</button>
+                <button className="btn-label-mgr" onClick={() => setShowLabelManager(true)}>⊞ กลุ่ม / แท็ก</button>
               </div>
 
               <PortfolioPieCharts rows={portfolioRows} />
 
               {/* 2-level grouped sections */}
               {topGroups.map(({ topKey, label, subGroups }) => (
-                <div key={topKey} className="rebalance-top-group">
-                  <h2 className="rebalance-top-group-title">{label}</h2>
+                <div key={topKey} className={hasNamedGroups ? 'rebalance-top-group' : ''}>
+                  {hasNamedGroups && <h2 className="rebalance-top-group-title">{label}</h2>}
                   {subGroups.map(({ company, funds: gFunds }) => (
                     <div key={company} className="port-group">
                       {company && <h3 className="port-group-title">{company}</h3>}
@@ -532,6 +536,7 @@ export default function App() {
           onRemoveFund={removeFund}
           onUpdateTags={handleUpdateTags}
           onUpdateGroup={handleUpdateGroup}
+          onOpenLabelManager={() => setShowLabelManager(true)}
         />
       )}
 
@@ -633,6 +638,15 @@ export default function App() {
           funds={funds}
           onSave={handleSaveFunds}
           onClose={() => setShowManager(false)}
+        />
+      )}
+
+      {showLabelManager && (
+        <LabelManager
+          funds={funds}
+          onUpdateGroup={handleUpdateGroup}
+          onUpdateTags={handleUpdateTags}
+          onClose={() => setShowLabelManager(false)}
         />
       )}
     </div>
