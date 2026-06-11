@@ -96,7 +96,7 @@ function PieSection({ title, data, total }) {
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
           <Legend formatter={(name, entry) => (
             <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
               {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
@@ -140,7 +140,7 @@ function AllocationCharts({ rows }) {
   );
 }
 
-export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund }) {
+export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund, onUpdateTags, onUpdateGroup }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
   const rebalanceOnlyFunds = funds.filter((f) => f.rebalanceOnly);
@@ -218,101 +218,152 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
 
       <AllocationCharts rows={rows} />
 
-      {/* Fund rows */}
-      <div className="rebalance-list">
-        {rows.map((r) => (
-          <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''} ${r.entry.done ? 'rebalance-row-done' : ''}`}>
-            <div className="rebalance-fund-info">
-              <div className="rebalance-fund-top">
-                <span className="port-code">{r.code}</span>
-                {r.isDividend && <span className="badge-div">ปันผล</span>}
-                {r._new && <span className="badge-new">กองใหม่</span>}
-                {r.entry.done && <span className="badge-done">✓ เสร็จแล้ว</span>}
-              </div>
-              <span className="port-name">{r.name}</span>
-              <div className="rebalance-nav-row">
-                <span className="rebalance-nav-label">NAV</span>
-                <input
-                  className={`rebalance-nav-input ${r.navIsCustom ? 'nav-custom' : ''}`}
-                  type="number"
-                  step="0.0001"
-                  min="0"
-                  value={r.entry.customNav}
-                  placeholder={r.fetchedNav != null ? fmt(r.fetchedNav) : '—'}
-                  onChange={(e) => onSetPlanFields(r.code, { customNav: e.target.value })}
-                />
-                {!r._new && r.currentValue != null && (
-                  <span className="rebalance-val">฿{fmtMoney(r.currentValue)}</span>
-                )}
-              </div>
-            </div>
+      {/* Fund rows — 2-level: custom group → company */}
+      {(() => {
+        const topKeys = [];
+        const topSeen = new Set();
+        for (const r of rows) {
+          const k = r._new ? '__new__' : (r.group || '');
+          if (!topSeen.has(k)) { topSeen.add(k); topKeys.push(k); }
+        }
+        return topKeys.map((topKey) => {
+          const topRows = rows.filter((r) => (r._new ? '__new__' : (r.group || '')) === topKey);
+          const topLabel = topKey === '__new__' ? 'กองทุนใหม่' : topKey || 'ไม่มีกลุ่ม';
+          const subKeys = [];
+          const subSeen = new Set();
+          for (const r of topRows) {
+            const k = r.companyInfo || '';
+            if (!subSeen.has(k)) { subSeen.add(k); subKeys.push(k); }
+          }
+          return (
+            <div key={topKey} className="rebalance-top-group">
+              <h2 className="rebalance-top-group-title">{topLabel}</h2>
+              {subKeys.map((subKey) => {
+                const subRows = topRows.filter((r) => (r.companyInfo || '') === subKey);
+                return (
+                  <div key={subKey} className="port-group">
+                    {subKey && <h3 className="port-group-title">{subKey}</h3>}
+                    <div className="rebalance-list">
+                      {subRows.map((r) => (
+                        <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''} ${r.entry.done ? 'rebalance-row-done' : ''}`}>
+                          <div className="rebalance-fund-info">
+                            <div className="rebalance-fund-top">
+                              <span className="port-code">{r.code}</span>
+                              {r.isDividend && <span className="badge-div">ปันผล</span>}
+                              {r._new && <span className="badge-new">กองใหม่</span>}
+                              {r.entry.done && <span className="badge-done">✓ เสร็จแล้ว</span>}
+                            </div>
+                            <span className="port-name">{r.name}</span>
+                            {!r._new && (
+                              <input
+                                className="rebalance-group-input"
+                                value={r.group || ''}
+                                placeholder="กลุ่มใหญ่…"
+                                onChange={(e) => onUpdateGroup(r.code, e.target.value)}
+                              />
+                            )}
+                            <div className="rebalance-tag-row">
+                              {(r.tags ?? []).map((t) => (
+                                <span key={t} className="tag-chip">
+                                  {t}
+                                  <button className="tag-chip-del" onClick={() => onUpdateTags(r.code, (r.tags ?? []).filter((x) => x !== t))}>×</button>
+                                </span>
+                              ))}
+                              <input className="tag-input" placeholder="+ tag"
+                                onKeyDown={(e) => {
+                                  if ((e.key === 'Enter' || e.key === ',') && e.target.value.trim()) {
+                                    e.preventDefault();
+                                    const v = e.target.value.trim();
+                                    const cur = r.tags ?? [];
+                                    if (!cur.includes(v)) onUpdateTags(r.code, [...cur, v]);
+                                    e.target.value = '';
+                                  }
+                                }}
+                              />
+                            </div>
+                            <div className="rebalance-nav-row">
+                              <span className="rebalance-nav-label">NAV</span>
+                              <input
+                                className={`rebalance-nav-input ${r.navIsCustom ? 'nav-custom' : ''}`}
+                                type="number" step="0.0001" min="0"
+                                value={r.entry.customNav}
+                                placeholder={r.fetchedNav != null ? fmt(r.fetchedNav) : '—'}
+                                onChange={(e) => onSetPlanFields(r.code, { customNav: e.target.value })}
+                              />
+                              {!r._new && r.currentValue != null && (
+                                <span className="rebalance-val">฿{fmtMoney(r.currentValue)}</span>
+                              )}
+                            </div>
+                          </div>
 
-            <div className="rebalance-controls">
-              <div className="rebalance-action-tabs">
-                {(r._new ? ['buy', 'hold'] : ['sell', 'hold', 'buy']).map((a) => (
-                  <button key={a}
-                    className={`rebalance-action-btn ${r.entry.action === a ? `active-${a}` : ''}`}
-                    onClick={() => {
-                      if (a === 'sell' && r.entry.action !== 'sell') {
-                        const defaultUnits = r.totalUnits != null ? String(Number(r.totalUnits.toFixed(4))) : '';
-                        onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits, done: false });
-                      } else {
-                        onSetPlanFields(r.code, { action: a, done: false });
-                      }
-                    }}>
-                    {a === 'sell' ? 'ขาย' : a === 'buy' ? 'ซื้อ' : 'คงเดิม'}
-                  </button>
-                ))}
-              </div>
-              {r.entry.action === 'sell' && (
-                <div className="sell-mode-toggle">
-                  <button
-                    className={`sell-mode-btn ${r.entry.sellMode !== 'unit' ? 'active' : ''}`}
-                    onClick={() => onSetPlanFields(r.code, { sellMode: 'money' })}>฿ บาท</button>
-                  <button
-                    className={`sell-mode-btn ${r.entry.sellMode === 'unit' ? 'active' : ''}`}
-                    onClick={() => onSetPlanFields(r.code, { sellMode: 'unit', amount: '' })}>หน่วย</button>
-                </div>
-              )}
-              {r.entry.action !== 'hold' && (
-                <div className="rebalance-input-wrap">
-                  <input className="rebalance-amount-input"
-                    type="number"
-                    step={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? '1' : '100'}
-                    min="0"
-                    value={r.entry.amount}
-                    placeholder={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? 'จำนวน unit' : 'จำนวนเงิน (฿)'}
-                    onChange={(e) => onSetPlanFields(r.code, { amount: e.target.value })}
-                  />
-                  {r.sellValueDisplay != null && (
-                    <span className="sell-unit-calc">= ฿{fmtMoney(r.sellValueDisplay)}</span>
-                  )}
-                </div>
-              )}
-              {r.entry.action !== 'hold' && r.afterValue != null && (
-                <div className="rebalance-after">
-                  <span>หลัง: ฿{fmtMoney(r.afterValue)}</span>
-                  {r.afterUnits != null && <span>{fmt(r.afterUnits)} units</span>}
-                </div>
-              )}
-              {r.entry.action !== 'hold' && (
-                <button
-                  className={`btn-done-toggle ${r.entry.done ? 'done' : ''}`}
-                  onClick={() => onSetPlanFields(r.code, { done: !r.entry.done })}>
-                  {r.entry.action === 'sell'
-                    ? (r.entry.done ? '✓ เงินเข้าแล้ว' : 'เงินเข้าแล้ว?')
-                    : (r.entry.done ? '✓ กองเข้าแล้ว' : 'กองเข้าแล้ว?')}
-                </button>
-              )}
-            </div>
+                          <div className="rebalance-controls">
+                            <div className="rebalance-action-tabs">
+                              {(r._new ? ['buy', 'hold'] : ['sell', 'hold', 'buy']).map((a) => (
+                                <button key={a}
+                                  className={`rebalance-action-btn ${r.entry.action === a ? `active-${a}` : ''}`}
+                                  onClick={() => {
+                                    if (a === 'sell' && r.entry.action !== 'sell') {
+                                      const defaultUnits = r.totalUnits != null ? String(Number(r.totalUnits.toFixed(4))) : '';
+                                      onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits, done: false });
+                                    } else {
+                                      onSetPlanFields(r.code, { action: a, done: false });
+                                    }
+                                  }}>
+                                  {a === 'sell' ? 'ขาย' : a === 'buy' ? 'ซื้อ' : 'คงเดิม'}
+                                </button>
+                              ))}
+                            </div>
+                            {r.entry.action === 'sell' && (
+                              <div className="sell-mode-toggle">
+                                <button className={`sell-mode-btn ${r.entry.sellMode !== 'unit' ? 'active' : ''}`}
+                                  onClick={() => onSetPlanFields(r.code, { sellMode: 'money' })}>฿ บาท</button>
+                                <button className={`sell-mode-btn ${r.entry.sellMode === 'unit' ? 'active' : ''}`}
+                                  onClick={() => onSetPlanFields(r.code, { sellMode: 'unit', amount: '' })}>หน่วย</button>
+                              </div>
+                            )}
+                            {r.entry.action !== 'hold' && (
+                              <div className="rebalance-input-wrap">
+                                <input className="rebalance-amount-input" type="number"
+                                  step={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? '1' : '100'}
+                                  min="0" value={r.entry.amount}
+                                  placeholder={r.entry.action === 'sell' && r.entry.sellMode === 'unit' ? 'จำนวน unit' : 'จำนวนเงิน (฿)'}
+                                  onChange={(e) => onSetPlanFields(r.code, { amount: e.target.value })}
+                                />
+                                {r.sellValueDisplay != null && (
+                                  <span className="sell-unit-calc">= ฿{fmtMoney(r.sellValueDisplay)}</span>
+                                )}
+                              </div>
+                            )}
+                            {r.entry.action !== 'hold' && r.afterValue != null && (
+                              <div className="rebalance-after">
+                                <span>หลัง: ฿{fmtMoney(r.afterValue)}</span>
+                                {r.afterUnits != null && <span>{fmt(r.afterUnits)} units</span>}
+                              </div>
+                            )}
+                            {r.entry.action !== 'hold' && (
+                              <button className={`btn-done-toggle ${r.entry.done ? 'done' : ''}`}
+                                onClick={() => onSetPlanFields(r.code, { done: !r.entry.done })}>
+                                {r.entry.action === 'sell'
+                                  ? (r.entry.done ? '✓ เงินเข้าแล้ว' : 'เงินเข้าแล้ว?')
+                                  : (r.entry.done ? '✓ กองเข้าแล้ว' : 'กองเข้าแล้ว?')}
+                              </button>
+                            )}
+                          </div>
 
-            {r._new && (
-              <button className="btn-icon btn-icon-del" style={{ alignSelf: 'flex-start' }}
-                onClick={() => onRemoveFund(r.code)}>🗑</button>
-            )}
-          </div>
-        ))}
-      </div>
+                          {r._new && (
+                            <button className="btn-icon btn-icon-del" style={{ alignSelf: 'flex-start' }}
+                              onClick={() => onRemoveFund(r.code)}>🗑</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        });
+      })()}
 
       <FundSearch existingCodes={allFundCodes} onAdd={onAddFund} />
     </div>

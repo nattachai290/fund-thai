@@ -3,6 +3,7 @@ import AuthButton from './components/AuthButton';
 import FundChart from './components/FundChart';
 import FundManager from './components/FundManager';
 import RebalanceTab from './components/RebalanceTab';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { initGoogleAuth } from './utils/googleAuth';
 import { loadFundConfig, saveFundConfig, loadRebalancePlan, saveRebalancePlan } from './utils/googleDrive';
 import { lookupProjId, fetchNAV } from './utils/secApi';
@@ -43,6 +44,59 @@ function fmt(v, decimals = 4) {
 function fmtMoney(v, decimals = 2) {
   if (v == null) return '—';
   return Number(v).toLocaleString('th-TH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+const PIE_COLORS = ['#60a5fa','#f59e0b','#34d399','#f472b6','#a78bfa','#fb923c','#22d3ee','#84cc16','#e879f9','#f87171'];
+function strColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return PIE_COLORS[h % PIE_COLORS.length];
+}
+
+function PortfolioPieCharts({ rows }) {
+  const total = rows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
+  if (total <= 0) return null;
+  const fmtPie = (v) => Number(v).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const divData = [
+    { name: 'ปันผล', value: rows.filter((r) => r.isDividend).reduce((s, r) => s + (r.currentValue ?? 0), 0), color: '#f59e0b' },
+    { name: 'ไม่ปันผล', value: rows.filter((r) => !r.isDividend).reduce((s, r) => s + (r.currentValue ?? 0), 0), color: '#60a5fa' },
+  ].filter((d) => d.value > 0);
+
+  const tagMap = {};
+  for (const r of rows) {
+    const tags = r.tags?.length ? r.tags : ['ไม่มีกลุ่ม'];
+    for (const t of tags) tagMap[t] = (tagMap[t] ?? 0) + (r.currentValue ?? 0);
+  }
+  const tagData = Object.entries(tagMap)
+    .map(([name, value]) => ({ name, value, color: strColor(name) }))
+    .sort((a, b) => b.value - a.value);
+
+  const renderPie = (data, title) => (
+    <div className="rebalance-chart-box">
+      <p className="chart-label">{title}</p>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
+            {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+          </Pie>
+          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
+          <Legend formatter={(name, entry) => (
+            <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
+              {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
+            </span>
+          )} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  return (
+    <div className="portfolio-charts">
+      {renderPie(divData, 'สัดส่วน (ปันผล / ไม่ปันผล)')}
+      {tagData.length > 1 && renderPie(tagData, 'สัดส่วน (แยก Tag)')}
+    </div>
+  );
 }
 
 export default function App() {
@@ -186,6 +240,7 @@ export default function App() {
               avgCost: editForm.avgCost !== '' ? parseFloat(editForm.avgCost) : null,
               unitBalance: editForm.unitBalance !== '' ? parseFloat(editForm.unitBalance) : null,
               tags: editForm.tags,
+              group: editForm.group ?? '',
             }
           : f
       );
@@ -200,6 +255,22 @@ export default function App() {
     setFunds(updated);
     setNavData((p) => { const n = { ...p }; delete n[code]; return n; });
     saveFundConfig(updated).catch(console.error);
+  }
+
+  function handleUpdateTags(code, tags) {
+    setFunds((prev) => {
+      const updated = prev.map((f) => f.code === code ? { ...f, tags } : f);
+      saveFundConfig(updated).catch(console.error);
+      return updated;
+    });
+  }
+
+  function handleUpdateGroup(code, group) {
+    setFunds((prev) => {
+      const updated = prev.map((f) => f.code === code ? { ...f, group: group || '' } : f);
+      saveFundConfig(updated).catch(console.error);
+      return updated;
+    });
   }
 
   function handleAddRebalanceFund(item) {
@@ -287,17 +358,20 @@ export default function App() {
   const totalValue = portfolioRows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
   const totalCost = portfolioFunds.reduce((s, f) => s + (f.avgCost ?? 0) * (f.unitBalance ?? 0), 0);
 
-  // group by companyInfo
-  const groups = [];
-  const seen = new Set();
-  for (const f of portfolioFunds) {
-    const key = f.companyInfo || '';
-    if (!seen.has(key)) { seen.add(key); groups.push(key); }
-  }
-  const groupedFunds = groups.map((key) => ({
-    company: key,
-    funds: portfolioRows.filter((r) => (r.companyInfo || '') === key && !r.rebalanceOnly),
-  }));
+  // 2-level: top group (user-named) → company
+  const topGroupKeys = [...new Set(portfolioFunds.map((f) => f.group || ''))];
+  const topGroups = topGroupKeys.map((topKey) => {
+    const topRows = portfolioRows.filter((r) => (r.group || '') === topKey);
+    const subKeys = [...new Set(topRows.map((r) => r.companyInfo || ''))];
+    return {
+      topKey,
+      label: topKey || 'ไม่มีกลุ่ม',
+      subGroups: subKeys.map((subKey) => ({
+        company: subKey,
+        funds: topRows.filter((r) => (r.companyInfo || '') === subKey),
+      })),
+    };
+  });
   const totalPnl = totalValue - totalCost;
 
   return (
@@ -390,57 +464,55 @@ export default function App() {
                 <button className="btn-export" onClick={() => setShowExport(true)}>⬇ Export</button>
               </div>
 
-              {/* Grouped sections */}
-              {groupedFunds.map(({ company, funds: gFunds }) => (
-                <div key={company} className="port-group">
-                  {company && <h3 className="port-group-title">{company}</h3>}
-                  <div className="port-cards">
-                    {gFunds.map((r) => {
-                      const loading = loadingNav[r.code];
-                      const rows = navData[r.code];
-                      const lastDate = rows?.[rows.length - 1]?.date;
-                      return (
-                        <div key={r.code} className="port-card">
-                          <div className="port-card-top">
-                            <div className="port-card-identity">
-                              <span className="port-code">{r.code}</span>
-                              {r.isDividend && <span className="badge-div">ปันผล</span>}
+              <PortfolioPieCharts rows={portfolioRows} />
+
+              {/* 2-level grouped sections */}
+              {topGroups.map(({ topKey, label, subGroups }) => (
+                <div key={topKey} className="rebalance-top-group">
+                  <h2 className="rebalance-top-group-title">{label}</h2>
+                  {subGroups.map(({ company, funds: gFunds }) => (
+                    <div key={company} className="port-group">
+                      {company && <h3 className="port-group-title">{company}</h3>}
+                      <div className="port-cards">
+                        {gFunds.map((r) => {
+                          const loading = loadingNav[r.code];
+                          const rows = navData[r.code];
+                          const lastDate = rows?.[rows.length - 1]?.date;
+                          return (
+                            <div key={r.code} className="port-card">
+                              <div className="port-card-top">
+                                <div className="port-card-identity">
+                                  <span className="port-code">{r.code}</span>
+                                  {r.isDividend && <span className="badge-div">ปันผล</span>}
+                                </div>
+                                <div className="port-card-actions">
+                                  <button className="btn-icon" onClick={() => openEditPortfolio(r)} title="แก้ไข">✏️</button>
+                                  <button className="btn-icon btn-icon-del" onClick={() => removeFund(r.code)} title="ลบ">🗑</button>
+                                </div>
+                              </div>
+                              <p className="port-name">{r.name}</p>
+                              <div className="port-card-nav">
+                                <span className="port-nav-val">{loading ? '…' : fmt(r.lastNav)}</span>
+                                {lastDate && <span className="nav-date">{lastDate}</span>}
+                              </div>
+                              <div className="port-card-stats">
+                                <div className="port-stat"><span>ต้นทุน</span><span>{r.avgCost != null ? fmt(r.avgCost) : '—'}</span></div>
+                                <div className="port-stat"><span>Units</span><span>{r.unitBalance != null ? fmt(r.unitBalance) : '—'}</span></div>
+                                <div className="port-stat"><span>มูลค่า</span><span>{r.currentValue != null ? `฿${fmtMoney(r.currentValue)}` : '—'}</span></div>
+                                <div className={`port-stat ${r.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}`}>
+                                  <span>กำไร/ขาดทุน</span>
+                                  <span>
+                                    {r.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmtMoney(r.pnl)}` : '—'}
+                                    {r.pnlPct != null && <em>{r.pnlPct >= 0 ? '+' : ''}{fmt(r.pnlPct, 2)}%</em>}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="port-card-actions">
-                              <button className="btn-icon" onClick={() => openEditPortfolio(r)} title="แก้ไข">✏️</button>
-                              <button className="btn-icon btn-icon-del" onClick={() => removeFund(r.code)} title="ลบ">🗑</button>
-                            </div>
-                          </div>
-                          <p className="port-name">{r.name}</p>
-                          <div className="port-card-nav">
-                            <span className="port-nav-val">{loading ? '…' : fmt(r.lastNav)}</span>
-                            {lastDate && <span className="nav-date">{lastDate}</span>}
-                          </div>
-                          <div className="port-card-stats">
-                            <div className="port-stat">
-                              <span>ต้นทุน</span>
-                              <span>{r.avgCost != null ? fmt(r.avgCost) : '—'}</span>
-                            </div>
-                            <div className="port-stat">
-                              <span>Units</span>
-                              <span>{r.unitBalance != null ? fmt(r.unitBalance) : '—'}</span>
-                            </div>
-                            <div className="port-stat">
-                              <span>มูลค่า</span>
-                              <span>{r.currentValue != null ? `฿${fmtMoney(r.currentValue)}` : '—'}</span>
-                            </div>
-                            <div className={`port-stat ${r.pnl != null ? (r.pnl >= 0 ? 'pnl-pos' : 'pnl-neg') : ''}`}>
-                              <span>กำไร/ขาดทุน</span>
-                              <span>
-                                {r.pnl != null ? `${r.pnl >= 0 ? '+' : ''}฿${fmtMoney(r.pnl)}` : '—'}
-                                {r.pnlPct != null && <em>{r.pnlPct >= 0 ? '+' : ''}{fmt(r.pnlPct, 2)}%</em>}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ))}
             </>
@@ -458,6 +530,8 @@ export default function App() {
           onSetPlanFields={handleSetPlanFields}
           onAddFund={handleAddRebalanceFund}
           onRemoveFund={removeFund}
+          onUpdateTags={handleUpdateTags}
+          onUpdateGroup={handleUpdateGroup}
         />
       )}
 
@@ -514,6 +588,15 @@ export default function App() {
                   value={editForm.unitBalance}
                   placeholder="—"
                   onChange={(e) => setEditForm((p) => ({ ...p, unitBalance: e.target.value }))}
+                />
+              </label>
+              <label className="form-label">
+                กลุ่มใหญ่
+                <input
+                  className="form-input"
+                  value={editForm.group ?? ''}
+                  placeholder="ตั้งชื่อกลุ่ม…"
+                  onChange={(e) => setEditForm((p) => ({ ...p, group: e.target.value }))}
                 />
               </label>
               <div className="form-label">
