@@ -3,6 +3,7 @@ import AuthButton from './components/AuthButton';
 import FundChart from './components/FundChart';
 import FundManager from './components/FundManager';
 import RebalanceTab from './components/RebalanceTab';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { initGoogleAuth } from './utils/googleAuth';
 import { loadFundConfig, saveFundConfig, loadRebalancePlan, saveRebalancePlan } from './utils/googleDrive';
 import { lookupProjId, fetchNAV } from './utils/secApi';
@@ -43,6 +44,59 @@ function fmt(v, decimals = 4) {
 function fmtMoney(v, decimals = 2) {
   if (v == null) return '—';
   return Number(v).toLocaleString('th-TH', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+const PIE_COLORS = ['#60a5fa','#f59e0b','#34d399','#f472b6','#a78bfa','#fb923c','#22d3ee','#84cc16','#e879f9','#f87171'];
+function strColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return PIE_COLORS[h % PIE_COLORS.length];
+}
+
+function PortfolioPieCharts({ rows }) {
+  const total = rows.reduce((s, r) => s + (r.currentValue ?? 0), 0);
+  if (total <= 0) return null;
+  const fmtPie = (v) => Number(v).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const divData = [
+    { name: 'ปันผล', value: rows.filter((r) => r.isDividend).reduce((s, r) => s + (r.currentValue ?? 0), 0), color: '#f59e0b' },
+    { name: 'ไม่ปันผล', value: rows.filter((r) => !r.isDividend).reduce((s, r) => s + (r.currentValue ?? 0), 0), color: '#60a5fa' },
+  ].filter((d) => d.value > 0);
+
+  const tagMap = {};
+  for (const r of rows) {
+    const tags = r.tags?.length ? r.tags : ['ไม่มีกลุ่ม'];
+    for (const t of tags) tagMap[t] = (tagMap[t] ?? 0) + (r.currentValue ?? 0);
+  }
+  const tagData = Object.entries(tagMap)
+    .map(([name, value]) => ({ name, value, color: strColor(name) }))
+    .sort((a, b) => b.value - a.value);
+
+  const renderPie = (data, title) => (
+    <div className="rebalance-chart-box">
+      <p className="chart-label">{title}</p>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
+            {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+          </Pie>
+          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+          <Legend formatter={(name, entry) => (
+            <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
+              {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
+            </span>
+          )} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  return (
+    <div className="portfolio-charts">
+      {renderPie(divData, 'สัดส่วน (ปันผล / ไม่ปันผล)')}
+      {tagData.length > 1 && renderPie(tagData, 'สัดส่วน (แยก Tag)')}
+    </div>
+  );
 }
 
 export default function App() {
@@ -389,6 +443,8 @@ export default function App() {
                 </div>
                 <button className="btn-export" onClick={() => setShowExport(true)}>⬇ Export</button>
               </div>
+
+              <PortfolioPieCharts rows={portfolioRows} />
 
               {/* Grouped sections */}
               {groupedFunds.map(({ company, funds: gFunds }) => (
