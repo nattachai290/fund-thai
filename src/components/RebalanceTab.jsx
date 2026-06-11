@@ -184,11 +184,13 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
   return (
     <div className="rebalance-main">
       {/* Summary */}
-      <div className="portfolio-summary" style={{ position: 'relative' }}>
+      <div className="rebalance-summary-bar">
         <button className="btn-rebalance-clear" onClick={() => onPlanChange({})}>ล้างแผน</button>
         {onOpenLabelManager && (
-          <button className="btn-label-mgr btn-label-mgr-rebalance" onClick={onOpenLabelManager}>⊞ กลุ่ม / แท็ก</button>
+          <button className="btn-label-mgr" onClick={onOpenLabelManager}>⊞ กลุ่ม / แท็ก</button>
         )}
+      </div>
+      <div className="portfolio-summary">
         <div className="summary-card">
           <span>มูลค่าก่อน</span>
           <strong>฿{fmtMoney(totalBefore)}</strong>
