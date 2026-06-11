@@ -1006,9 +1006,6 @@ body {
 .rebalance-fund-top { display: flex; align-items: center; gap: 0.4rem; }
 .rebalance-nav { font-size: 0.8rem; color: #60a5fa; font-variant-numeric: tabular-nums; }
 .btn-rebalance-clear {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
   padding: 0.25rem 0.75rem;
   border-radius: 6px;
   border: 1px solid #475569;
@@ -1140,10 +1137,11 @@ body {
   white-space: nowrap;
 }
 .btn-label-mgr:hover { background: rgba(79,70,229,0.22); }
-.btn-label-mgr-rebalance {
-  position: absolute;
-  top: 0.6rem;
-  left: 9rem;
+.rebalance-summary-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
 }
 .label-manager-panel {
   max-width: 520px;

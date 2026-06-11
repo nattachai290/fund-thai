@@ -96,7 +96,7 @@ function PieSection({ title, data, total }) {
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
+          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} labelStyle={{ color: '#e2e8f0' }} itemStyle={{ color: '#e2e8f0' }} />
           <Legend formatter={(name, entry) => (
             <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
               {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
@@ -184,11 +184,13 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
   return (
     <div className="rebalance-main">
       {/* Summary */}
-      <div className="portfolio-summary" style={{ position: 'relative' }}>
+      <div className="rebalance-summary-bar">
         <button className="btn-rebalance-clear" onClick={() => onPlanChange({})}>ล้างแผน</button>
         {onOpenLabelManager && (
-          <button className="btn-label-mgr btn-label-mgr-rebalance" onClick={onOpenLabelManager}>⊞ กลุ่ม / แท็ก</button>
+          <button className="btn-label-mgr" onClick={onOpenLabelManager}>⊞ กลุ่ม / แท็ก</button>
         )}
+      </div>
+      <div className="portfolio-summary">
         <div className="summary-card">
           <span>มูลค่าก่อน</span>
           <strong>฿{fmtMoney(totalBefore)}</strong>
