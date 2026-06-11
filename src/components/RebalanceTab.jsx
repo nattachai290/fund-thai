@@ -218,9 +218,22 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
 
       <AllocationCharts rows={rows} />
 
-      {/* Fund rows */}
-      <div className="rebalance-list">
-        {rows.map((r) => (
+      {/* Fund rows — grouped by company */}
+      {(() => {
+        const groups = [];
+        const seen = new Set();
+        for (const r of rows) {
+          const key = r._new ? '__new__' : (r.companyInfo || '');
+          if (!seen.has(key)) { seen.add(key); groups.push(key); }
+        }
+        return groups.map((key) => {
+          const label = key === '__new__' ? 'กองทุนใหม่' : key || 'ไม่ระบุ';
+          const group = rows.filter((r) => (r._new ? '__new__' : (r.companyInfo || '')) === key);
+          return (
+            <div key={key} className="port-group">
+              <h3 className="port-group-title">{label}</h3>
+              <div className="rebalance-list">
+                {group.map((r) => (
           <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''} ${r.entry.done ? 'rebalance-row-done' : ''}`}>
             <div className="rebalance-fund-info">
               <div className="rebalance-fund-top">
@@ -331,9 +344,13 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
               <button className="btn-icon btn-icon-del" style={{ alignSelf: 'flex-start' }}
                 onClick={() => onRemoveFund(r.code)}>🗑</button>
             )}
-          </div>
-        ))}
-      </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        });
+      })()}
 
       <FundSearch existingCodes={allFundCodes} onAdd={onAddFund} />
     </div>
