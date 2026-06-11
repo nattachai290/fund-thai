@@ -1113,7 +1113,6 @@ body {
 .btn-done-toggle:hover { border-color: #34d399; color: #34d399; }
 .btn-done-toggle.done { background: rgba(52,211,153,0.12); border-color: #34d399; color: #34d399; font-weight: 600; }
 .rebalance-chart-box { margin: 0.5rem 0 1rem; }
-}
 .rebalance-search-box {
   background: #1e293b;
   border: 1px dashed #334155;
@@ -1127,3 +1126,89 @@ body {
 .rebalance-search-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .rebalance-select { flex: 1; min-width: 180px; }
 .rebalance-kw { flex: 1; min-width: 140px; }
+
+/* ── Label Manager ─────────────────────────────────────────── */
+.btn-label-mgr {
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #4f46e5;
+  background: rgba(79,70,229,0.12);
+  color: #818cf8;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn-label-mgr:hover { background: rgba(79,70,229,0.22); }
+.btn-label-mgr-rebalance {
+  position: absolute;
+  top: 0.6rem;
+  left: 9rem;
+}
+.label-manager-panel {
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.label-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid #334155;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+}
+.label-tab {
+  padding: 0.35rem 1rem;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.label-tab:hover { color: #e2e8f0; }
+.label-tab.active { background: #1e293b; border-color: #334155; color: #e2e8f0; font-weight: 600; }
+.label-content { display: flex; flex-direction: column; gap: 0.75rem; }
+.label-create-row { display: flex; gap: 0.5rem; }
+.label-add-btn { white-space: nowrap; }
+.label-group-section {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+.label-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.label-group-name-input {
+  flex: 1;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1px dashed #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  outline: none;
+}
+.label-group-name-input:focus { border-color: #818cf8; border-style: solid; }
+.label-group-name.dim { color: #64748b; font-size: 0.83rem; }
+.label-fund-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.label-fund-row { display: flex; align-items: center; gap: 0.5rem; }
+.label-fund-code { font-size: 0.8rem; color: #94a3b8; min-width: 90px; font-variant-numeric: tabular-nums; }
+.label-group-select {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+  outline: none;
+}
