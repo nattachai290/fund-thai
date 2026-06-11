@@ -117,6 +117,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [rebalancePlan, setRebalancePlan] = useState({});
   const [showLabelManager, setShowLabelManager] = useState(false);
+  const [macdHideSell, setMacdHideSell] = useState(false);
   const rebalanceSaveTimer = useRef(null);
 
   useEffect(() => {
@@ -405,12 +406,22 @@ export default function App() {
       </div>
 
       {/* ── MACD Tab ──────────────────────────────────────────────────────────── */}
-      {activeTab === 'MACD' && (
+      {activeTab === 'MACD' && (() => {
+        const macdFunds = macdHideSell
+          ? funds.filter((f) => (rebalancePlan[f.code]?.action ?? 'hold') !== 'sell')
+          : funds;
+        return (
         <main className="charts-grid">
-          {funds.length === 0 && (
+          <div className="macd-filter-bar">
+            <label className="macd-filter-toggle">
+              <input type="checkbox" checked={macdHideSell} onChange={(e) => setMacdHideSell(e.target.checked)} />
+              ซ่อนกองที่ตั้งขายไว้
+            </label>
+          </div>
+          {macdFunds.length === 0 && (
             <div className="empty-state"><p>ยังไม่มีกองทุน — กด ⚙️ เพื่อเพิ่ม</p></div>
           )}
-          {funds.map((fund) => {
+          {macdFunds.map((fund) => {
             if (loadingNav[fund.code]) {
               return (
                 <div key={fund.code} className="fund-card fund-card-loading">
@@ -441,7 +452,8 @@ export default function App() {
             );
           })}
         </main>
-      )}
+        );
+      })()}
 
       {/* ── Portfolio Tab ──────────────────────────────────────────────────────── */}
       {activeTab === 'Portfolio' && (
