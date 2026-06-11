@@ -1210,3 +1210,22 @@ body {
   font-size: 0.8rem;
   outline: none;
 }
+
+/* ── MACD filter bar ───────────────────────────────────────── */
+.macd-filter-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+.macd-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  cursor: pointer;
+  user-select: none;
+}
+.macd-filter-toggle input { accent-color: #818cf8; cursor: pointer; }
