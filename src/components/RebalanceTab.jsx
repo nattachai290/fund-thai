@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchFunds } from '../utils/secApi';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const COMPANIES = [
   { label: '— เลือก บลจ. —', value: '' },
@@ -77,6 +78,40 @@ function FundSearch({ existingCodes, onAdd }) {
   );
 }
 
+function AllocationChart({ rows }) {
+  const afterRows = rows.filter((r) => !r._new);
+  const divVal = afterRows.filter((r) => r.isDividend).reduce((s, r) => s + (r.afterValue ?? r.currentValue ?? 0), 0);
+  const nonDivVal = afterRows.filter((r) => !r.isDividend).reduce((s, r) => s + (r.afterValue ?? r.currentValue ?? 0), 0);
+  const total = divVal + nonDivVal;
+  if (total <= 0) return null;
+
+  const data = [
+    { name: 'ปันผล', value: divVal },
+    { name: 'ไม่ปันผล', value: nonDivVal },
+  ].filter((d) => d.value > 0);
+
+  const COLORS = ['#f59e0b', '#60a5fa'];
+
+  return (
+    <div className="rebalance-chart-box">
+      <p className="chart-label">สัดส่วนหลัง Rebalance</p>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
+            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Pie>
+          <Tooltip formatter={(v) => `฿${fmtMoney(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }} />
+          <Legend formatter={(name, entry) => (
+            <span style={{ color: '#e2e8f0', fontSize: '0.8rem' }}>
+              {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
+            </span>
+          )} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSetPlanFields, onAddFund, onRemoveFund }) {
 
   const portfolioFunds = funds.filter((f) => !f.rebalanceOnly);
@@ -84,10 +119,9 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
   const allFundCodes = funds.map((f) => f.code);
 
   function getEntry(code) {
-    return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money', customNav: '' };
+    return plan[code] ?? { action: 'hold', amount: '', sellMode: 'money', customNav: '', done: false };
   }
 
-  // คำนวณผล rebalance
   const rows = [...portfolioFunds, ...rebalanceOnlyFunds.map((f) => ({ ...f, _new: true }))].map((fund) => {
     const navRows = navData[fund.code];
     const fetchedNav = navRows?.[navRows.length - 1]?.nav ?? null;
@@ -97,10 +131,8 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
       : fetchedNav;
     const units = fund.unitBalance ?? null;
     const currentValue = lastNav != null && units != null ? lastNav * units : null;
-    // totalUnits: ใช้ unitBalance ถ้ามี ไม่งั้น fallback คำนวณจาก currentValue/NAV
     const totalUnits = units ?? (currentValue != null && lastNav ? currentValue / lastNav : null);
     const rawAmt = parseFloat(entry.amount) || 0;
-    // sellMode: 'money' = ใส่เป็นบาท, 'unit' = ใส่เป็น unit แล้วคำนวณเป็นบาทจาก NAV
     const sellMoney = entry.sellMode === 'unit' && lastNav ? rawAmt * lastNav : rawAmt;
     let afterValue = currentValue;
     if (entry.action === 'sell' && currentValue != null) afterValue = Math.max(0, currentValue - sellMoney);
@@ -117,6 +149,9 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
   const totalSell = rows.filter((r) => r.entry.action === 'sell').reduce((s, r) => s + r.sellMoney, 0);
   const totalBuy = rows.filter((r) => r.entry.action === 'buy').reduce((s, r) => s + (parseFloat(r.entry.amount) || 0), 0);
   const cashDiff = totalSell - totalBuy;
+
+  const actionRows = rows.filter((r) => r.entry.action !== 'hold');
+  const doneCount = actionRows.filter((r) => r.entry.done).length;
 
   return (
     <div className="rebalance-main">
@@ -143,17 +178,28 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
           <span>มูลค่าหลัง</span>
           <strong>฿{fmtMoney(totalAfter)}</strong>
         </div>
+        {actionRows.length > 0 && (
+          <div className="summary-card">
+            <span>ดำเนินการแล้ว</span>
+            <strong style={{ color: doneCount === actionRows.length ? '#34d399' : '#94a3b8' }}>
+              {doneCount}/{actionRows.length}
+            </strong>
+          </div>
+        )}
       </div>
+
+      <AllocationChart rows={rows} />
 
       {/* Fund rows */}
       <div className="rebalance-list">
         {rows.map((r) => (
-          <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''}`}>
+          <div key={r.code} className={`rebalance-row ${r._new ? 'rebalance-row-new' : ''} ${r.entry.done ? 'rebalance-row-done' : ''}`}>
             <div className="rebalance-fund-info">
               <div className="rebalance-fund-top">
                 <span className="port-code">{r.code}</span>
                 {r.isDividend && <span className="badge-div">ปันผล</span>}
                 {r._new && <span className="badge-new">กองใหม่</span>}
+                {r.entry.done && <span className="badge-done">✓ เสร็จแล้ว</span>}
               </div>
               <span className="port-name">{r.name}</span>
               <div className="rebalance-nav-row">
@@ -181,9 +227,9 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                     onClick={() => {
                       if (a === 'sell' && r.entry.action !== 'sell') {
                         const defaultUnits = r.totalUnits != null ? String(Number(r.totalUnits.toFixed(4))) : '';
-                        onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits });
+                        onSetPlanFields(r.code, { action: 'sell', sellMode: 'unit', amount: defaultUnits, done: false });
                       } else {
-                        onSetPlanFields(r.code, { action: a });
+                        onSetPlanFields(r.code, { action: a, done: false });
                       }
                     }}>
                     {a === 'sell' ? 'ขาย' : a === 'buy' ? 'ซื้อ' : 'คงเดิม'}
@@ -197,7 +243,7 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                     onClick={() => onSetPlanFields(r.code, { sellMode: 'money' })}>฿ บาท</button>
                   <button
                     className={`sell-mode-btn ${r.entry.sellMode === 'unit' ? 'active' : ''}`}
-                    onClick={() => { onSetPlanFields(r.code, { sellMode: 'unit', amount: '' }) }}>หน่วย</button>
+                    onClick={() => onSetPlanFields(r.code, { sellMode: 'unit', amount: '' })}>หน่วย</button>
                 </div>
               )}
               {r.entry.action !== 'hold' && (
@@ -220,6 +266,15 @@ export default function RebalanceTab({ funds, navData, plan, onPlanChange, onSet
                   <span>หลัง: ฿{fmtMoney(r.afterValue)}</span>
                   {r.afterUnits != null && <span>{fmt(r.afterUnits)} units</span>}
                 </div>
+              )}
+              {r.entry.action !== 'hold' && (
+                <button
+                  className={`btn-done-toggle ${r.entry.done ? 'done' : ''}`}
+                  onClick={() => onSetPlanFields(r.code, { done: !r.entry.done })}>
+                  {r.entry.action === 'sell'
+                    ? (r.entry.done ? '✓ เงินเข้าแล้ว' : 'เงินเข้าแล้ว?')
+                    : (r.entry.done ? '✓ กองเข้าแล้ว' : 'กองเข้าแล้ว?')}
+                </button>
               )}
             </div>
 

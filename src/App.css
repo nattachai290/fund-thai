@@ -1002,6 +1002,31 @@ body {
   border-radius: 4px;
   padding: 0.1rem 0.35rem;
 }
+.badge-done {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(52,211,153,0.15);
+  color: #34d399;
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+}
+.rebalance-row-done { opacity: 0.65; }
+.btn-done-toggle {
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+.btn-done-toggle:hover { border-color: #34d399; color: #34d399; }
+.btn-done-toggle.done { background: rgba(52,211,153,0.12); border-color: #34d399; color: #34d399; font-weight: 600; }
+.rebalance-chart-box { margin: 0.5rem 0 1rem; }
+}
 .rebalance-search-box {
   background: #1e293b;
   border: 1px dashed #334155;
