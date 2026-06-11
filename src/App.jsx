@@ -81,7 +81,7 @@ function PortfolioPieCharts({ rows }) {
           <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} innerRadius={40}>
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
-          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} />
+          <Tooltip formatter={(v) => `฿${fmtPie(v)}`} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#e2e8f0' }} labelStyle={{ color: '#e2e8f0' }} itemStyle={{ color: '#e2e8f0' }} />
           <Legend formatter={(name, entry) => (
             <span style={{ color: '#e2e8f0', fontSize: '0.78rem' }}>
               {name} ({((entry.payload.value / total) * 100).toFixed(1)}%)
