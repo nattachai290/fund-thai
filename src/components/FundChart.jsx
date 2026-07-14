@@ -43,10 +43,8 @@ function MacdTooltip({ active, payload, label }) {
 
 export default function FundChart({ code, name, data, isDividend }) {
   const fund = { name };
-  const sixMonthsAgo = new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const cutoff = sixMonthsAgo.toISOString().slice(0, 10);
-  const displayData = data.filter((r) => r.date >= cutoff);
+  // แสดง 15 วันล่าสุด (นับจากข้อมูลจริง เพื่อไม่ให้วันหยุดทำให้ข้อมูลหาย)
+  const displayData = data.slice(-15);
 
   const lastRow = displayData[displayData.length - 1] ?? {};
 
